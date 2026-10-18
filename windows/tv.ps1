@@ -1,6 +1,7 @@
 <#
   Windows version of the tv-vibehack helper scripts. Run from PowerShell, from the repo folder:
 
+    .\windows\tv.ps1 prereqs                    one time: installs Python, Android Studio and the SDK
     .\windows\tv.ps1 setup                      one time: Python environment for talking to the TV
     .\windows\tv.ps1 probe                      check the connection (accept the prompt on the TV)
     .\windows\tv.ps1 backup                     save package list and settings into .\backup
@@ -41,6 +42,33 @@ function Read-Packages([string]$List) {
 }
 
 switch ($Cmd) {
+    "prereqs" {
+        # Everything the PC needs, in one command. The Android Studio download is a few GB, so
+        # start this first and run the TV steps in another PowerShell window while it works.
+        Write-Host "1/3 Python..."
+        winget install --id Python.Python.3.12 -e --accept-package-agreements --accept-source-agreements
+        Write-Host "2/3 Android Studio (large download, please wait)..."
+        winget install --id Google.AndroidStudio -e --accept-package-agreements --accept-source-agreements
+        Write-Host "3/3 Android SDK pieces for this project..."
+        $sdk = Join-Path $env:LOCALAPPDATA "Android\Sdk"
+        $mgr = Join-Path $sdk "cmdline-tools\latest\bin\sdkmanager.bat"
+        if (-not (Test-Path $mgr)) {
+            $alt = Get-ChildItem -Path $sdk -Filter sdkmanager.bat -Recurse -ErrorAction SilentlyContinue |
+                   Select-Object -First 1
+            if ($alt) { $mgr = $alt.FullName }
+        }
+        if (Test-Path $mgr) {
+            $yes = ("y`n" * 40)
+            $yes | & $mgr --sdk_root="$sdk" --licenses 2>&1 | Out-Null
+            & $mgr --sdk_root="$sdk" "platforms;android-34" "build-tools;34.0.0"
+            Write-Host "SDK ready at $sdk"
+        } else {
+            Write-Host "Could not find sdkmanager yet. Open Android Studio once, let it finish its"
+            Write-Host "first-run setup, then run this command again."
+        }
+        Write-Host ""
+        Write-Host "Now close this PowerShell window, open a new one, and run: .\windows\tv.ps1 setup"
+    }
     "setup" {
         $pyCmd = if (Get-Command py -ErrorAction SilentlyContinue) { "py" } else { "python" }
         & $pyCmd -m venv tools\venv
