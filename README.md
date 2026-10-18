@@ -35,6 +35,8 @@ step with screenshots from the TV. If you'd rather do it by hand, the pieces are
 | [`tools/disable.sh`](tools/disable.sh), [`tools/restore.sh`](tools/restore.sh) | Apply or undo a debloat list. |
 | [`examples/`](examples/) | Per-TV debloat lists. Add yours, see [CONTRIBUTING.md](CONTRIBUTING.md). |
 
+**Windows?** Use the PowerShell helper in [`windows/`](windows/README.md) instead of the `.sh` scripts.
+
 ## The launcher
 
 A small native Android TV home screen (`com.gathin.tvhome`), built for sets with 1 GB of RAM:

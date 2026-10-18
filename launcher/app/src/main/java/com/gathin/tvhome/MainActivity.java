@@ -388,6 +388,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /** Renames an input using input_labels in config.xml ("HDMI 1=Jio"); spaces and case ignored. */
+    private String customLabel(String label) {
+        String key = label.replaceAll("\\s", "");
+        for (String pair : getResources().getStringArray(R.array.input_labels)) {
+            int eq = pair.indexOf('=');
+            if (eq <= 0) continue;
+            if (key.equalsIgnoreCase(pair.substring(0, eq).replaceAll("\\s", ""))) {
+                return pair.substring(eq + 1).trim();
+            }
+        }
+        return label;
+    }
+
     /** Dropdown menu under the Inputs pill: HDMI ports (with connection state), AV and Live TV. */
     private void showInputs() {
         View anchor = findViewById(R.id.btnInputs);
@@ -418,6 +431,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 String label = l == null ? info.getId() : l.toString();
                 boolean hdmi = info.getType() == TvInputInfo.TYPE_HDMI;
                 if (hdmi && !label.toUpperCase().contains("HDMI")) label = "HDMI " + label;
+                label = customLabel(label);
                 final String id = info.getId();
                 int state = tim.getInputState(id);
                 if (!hdmi && rows.getChildCount() > 0 && !sawNonHdmi) addSeparator(rows);

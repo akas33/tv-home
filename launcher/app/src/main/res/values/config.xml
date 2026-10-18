@@ -27,23 +27,29 @@
 
     <!-- Screensaver weather (Open-Meteo, free, no account). Latitude/longitude in decimal degrees,
          e.g. 12.97 and 77.59. Leave lat or lon empty to turn weather off. -->
-    <string name="weather_lat" translatable="false"></string>
-    <string name="weather_lon" translatable="false"></string>
-    <string name="weather_label" translatable="false"></string>
+    <string name="weather_lat" translatable="false">12.9716</string>
+    <string name="weather_lon" translatable="false">77.5946</string>
+    <string name="weather_label" translatable="false">Bengaluru</string>
 
     <!-- Screensaver family message board, via ntfy (free, no account). Pick a long random topic name
          that only your family knows, e.g. "kitchen-tv-7f3k9q2x": anyone who knows it can post.
          Family then installs the ntfy app (or opens https://ntfy.sh/<topic>) and sends a note;
          it appears on the TV screensaver for 12 hours. Leave the topic empty to turn it off. -->
-    <string name="message_topic" translatable="false"></string>
+    <string name="message_topic" translatable="false">home-tv-lagzuqp3wll1</string>
     <string name="message_server" translatable="false">https://ntfy.sh</string>
 
     <!-- Bedtime dimming: from dim_start_hour the screensaver fades to black over dim_ramp_minutes and
          stays black until dim_end_hour (24h clock). Set dim_start_hour to -1 to turn it off. -->
-    <integer name="dim_start_hour">23</integer>
+    <integer name="dim_start_hour">0</integer>
     <integer name="dim_end_hour">6</integer>
     <integer name="dim_ramp_minutes">45</integer>
 
     <!-- Screensaver headlines: any RSS or Atom feed URL (https). Leave empty to turn news off. -->
-    <string name="news_feed_url" translatable="false"></string>
+    <string name="news_feed_url" translatable="false">https://www.thehindu.com/news/national/feeder/default.rss</string>
+
+    <!-- Rename inputs in the Inputs menu: "original name=new name". Spaces and case are ignored when
+         matching, so "HDMI 1" also matches "HDMI1". Check the real names by opening the Inputs menu. -->
+    <string-array name="input_labels">
+        <item>HDMI 1=Jio</item>
+    </string-array>
 </resources>
