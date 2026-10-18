@@ -16,7 +16,10 @@ printf '%s\n' \
   "pm install -r /data/local/tmp/tvhome.apk" \
   "rm -f /data/local/tmp/tvhome.apk" \
   "pm grant com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION 2>/dev/null; echo location-granted" \
+  "appops set com.gathin.tvhome SYSTEM_ALERT_WINDOW allow" \
   "cmd package set-home-activity --user 0 com.gathin.tvhome" \
   "pm disable-user --user 0 $STOCK_LAUNCHER" \
+  "am start-foreground-service -n com.gathin.tvhome/.BoardService" \
   | "$PY" -I ../tools/tv.py --batch
 echo "Installed. Press Home on the remote to see it."
+echo "Family board page: http://$TV_HOST:8080"

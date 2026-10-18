@@ -97,10 +97,14 @@ switch ($Cmd) {
             "pm install -r /data/local/tmp/tvhome.apk",
             "rm -f /data/local/tmp/tvhome.apk",
             "pm grant com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION",
+            # lets the board draw its banner over Netflix; Android TV has no screen to grant this
+            "appops set com.gathin.tvhome SYSTEM_ALERT_WINDOW allow",
             "cmd package set-home-activity --user 0 com.gathin.tvhome",
-            "pm disable-user --user 0 $StockLauncher")
+            "pm disable-user --user 0 $StockLauncher",
+            "am start-foreground-service -n com.gathin.tvhome/.BoardService")
         ($cmds -join "`n") | & $Py -I ..\tools\tv.py --batch
         Write-Host "Installed. Press Home on the remote to see it."
+        Write-Host "Family board page: http://$($env:TV_HOST):8080  (open it on a phone on your Wi-Fi)"
     }
     "screensaver" {
         $lines = @(

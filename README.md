@@ -79,12 +79,14 @@ TV_HOST=192.168.1.50 launcher/set-screensaver.sh preview # select it and start i
 `news_feed_url`), rebuild once, and the TV fetches them itself while the screensaver is on (at most
 every 30 minutes, via Open-Meteo, which needs no account). Leave a value empty to turn that part off.
 
-**Family board: notes and photos, private.** Notes and photos sent to your own Telegram bot from
-any phone, from anywhere (no shared Wi-Fi needed). Only the chat IDs in `telegram_allowed_chats`
-are accepted, so nobody else can put anything on the TV; with the list empty nothing is shown.
-A newly received photo fills the screen for `photo_feature_minutes`, then photos and the clock take
-turns, and everything drops off after 12 hours. Checked once a minute while the screensaver is
-showing. Setup steps: [`windows/README.md`](windows/README.md) under "Family board".
+**Family board: notes and photos.** Three ways in, all feeding one board: a page the TV serves
+itself (`http://<tv ip>:8080`, nothing installed, home Wi-Fi only), email to a mailbox made for the
+TV (nothing installed, works from anywhere, senders allow-listed), and optionally a private
+Telegram bot. Anything that arrives shows on the screensaver **and** pops a banner over whatever is
+playing, so it is seen mid-Netflix. A new photo fills the screensaver for `photo_feature_minutes`,
+then photos and the clock take turns; everything drops off after 12 hours. A small foreground
+service (`BoardService`) keeps the page and the mail check alive. Setup:
+[`windows/README.md`](windows/README.md) under "Family board".
 
 **Bedtime dimming.** `dim_start_hour` / `dim_end_hour` / `dim_ramp_minutes` in `config.xml` (default
 23:00 to 06:00, 45-minute fade). The screen fades to black and stays black until morning. Set

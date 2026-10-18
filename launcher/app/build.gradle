@@ -24,9 +24,21 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+
+    // JavaMail ships licence files that collide when packaged.
+    packaging {
+        resources {
+            excludes += ['META-INF/NOTICE.md', 'META-INF/LICENSE.md',
+                         'META-INF/NOTICE.txt', 'META-INF/LICENSE.txt',
+                         'META-INF/NOTICE', 'META-INF/LICENSE']
+        }
+    }
 }
 
 dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.3.2'
     implementation 'androidx.dynamicanimation:dynamicanimation:1.0.0'
+    // IMAP for the email route onto the family board (MailSource).
+    implementation 'com.sun.mail:android-mail:1.6.7'
+    implementation 'com.sun.mail:android-activation:1.6.7'
 }

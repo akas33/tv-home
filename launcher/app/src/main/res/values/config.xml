@@ -31,7 +31,21 @@
     <string name="weather_lon" translatable="false">77.5946</string>
     <string name="weather_label" translatable="false">Bengaluru</string>
 
-    <!-- PRIVATE family board: notes AND photos sent to your own Telegram bot from any phone,
+    <!-- FAMILY BOARD, way 1: a page served by the TV itself. Nothing to install and no account:
+         on the home Wi-Fi, open http://<tv ip>:8080 in any phone browser, type a note or pick a
+         photo, send. Anyone on your Wi-Fi can post; set a code below if you want one. -->
+    <integer name="upload_port">8080</integer>
+    <string name="upload_pin" translatable="false"></string>
+
+    <!-- FAMILY BOARD, way 2: email, for sending from outside the house with nothing installed.
+         Make a mailbox just for the TV and use an app password, never your real one
+         (windows/README.md explains how). Only these senders are accepted; empty means off. -->
+    <string name="mail_host" translatable="false">imap.gmail.com</string>
+    <string name="mail_user" translatable="false"></string>
+    <string name="mail_password" translatable="false"></string>
+    <string name="mail_allowed_senders" translatable="false"></string>
+
+    <!-- FAMILY BOARD, way 3: notes AND photos sent to your own Telegram bot from any phone,
          from anywhere. Only the chat IDs listed below are accepted, so nobody else can put
          anything on the TV. Both values are needed; leave the token empty to turn the board off.
          Setup: windows/README.md > "Family board". Keep the token secret, like a password. -->

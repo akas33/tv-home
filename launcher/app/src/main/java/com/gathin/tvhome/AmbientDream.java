@@ -172,11 +172,11 @@ public class AmbientDream extends DreamService {
 
         private void maybeReloadBrief(long now) {
             BriefFetcher.refreshIfStale(getContext());
-            TelegramSource.refreshIfStale(getContext());
+            BoardService.ensureRunning(getContext());
             if (now - briefLoadedAt < BRIEF_RELOAD_MS
                     && !(brief.isEmpty() && now - briefLoadedAt > 15_000)) return;
             briefLoadedAt = now;
-            List<String> fresh = new ArrayList<>(TelegramSource.notes);
+            List<String> fresh = new ArrayList<>(Board.lines());
             File f = new File(getContext().getExternalFilesDir(null), "brief.txt");
             if (f.isFile() && f.length() < 16 * 1024) {
                 try (BufferedReader br = new BufferedReader(new FileReader(f))) {
@@ -224,13 +224,13 @@ public class AmbientDream extends DreamService {
          * Which photo to show, or null for the clock view. A photo this TV first saw within the last
          * photo_feature_minutes holds the screen; after that, photos and the clock alternate.
          */
-        private TelegramSource.Shot pickShot(long now) {
-            List<TelegramSource.Shot> list = TelegramSource.shots;
+        private Board.Item pickShot(long now) {
+            List<Board.Item> list = Board.photos();
             if (list.isEmpty()) return null;
-            TelegramSource.Shot newest = list.get(0);
+            Board.Item newest = list.get(0);
             long featureMs = Math.max(0, getResources().getInteger(R.integer.photo_feature_minutes))
                     * 60_000L;
-            if (now - newest.firstSeenAt < featureMs) return newest;
+            if (now - newest.receivedAt < featureMs) return newest;
             long slot = now / PHOTO_SLOT_MS;
             if (slot % 2 == 0) return null;                    // clock's turn
             return list.get((int) ((slot / 2) % list.size()));
@@ -267,8 +267,8 @@ public class AmbientDream extends DreamService {
             }
 
             date.setTime(now);
-            TelegramSource.Shot shot = pickShot(now);
-            if (shot != null && !shot.bitmap.isRecycled()) {
+            Board.Item shot = pickShot(now);
+            if (shot != null && shot.isPhoto()) {
                 drawPhoto(canvas, shot, w, h);
                 drawCornerClock(canvas, cal, w, h);
             } else {
@@ -277,12 +277,12 @@ public class AmbientDream extends DreamService {
         }
 
         /** The photo, centred in a soft mat, with its caption underneath. */
-        private void drawPhoto(Canvas canvas, TelegramSource.Shot shot, int w, int h) {
+        private void drawPhoto(Canvas canvas, Board.Item shot, int w, int h) {
             float margin = w * 0.07f;
             float captionH = h * 0.12f;
             float availW = w - 2 * margin;
             float availH = h - 2 * margin - captionH;
-            int bw = shot.bitmap.getWidth(), bh = shot.bitmap.getHeight();
+            int bw = shot.photo.getWidth(), bh = shot.photo.getHeight();
             if (bw <= 0 || bh <= 0) return;
             float scale = Math.min(availW / bw, availH / bh);
             float dw = bw * scale, dh = bh * scale;
@@ -303,15 +303,16 @@ public class AmbientDream extends DreamService {
             clip.reset();
             clip.addRoundRect(dst, r, r, Path.Direction.CW);
             canvas.clipPath(clip);
-            canvas.drawBitmap(shot.bitmap, null, dst, photoPaint);
+            canvas.drawBitmap(shot.photo, null, dst, photoPaint);
             canvas.restore();
 
-            if (!shot.caption.isEmpty()) {
+            String caption = shot.line();
+            if (!caption.isEmpty()) {
                 captionPaint.setTextSize(h * 0.045f);
                 float maxW = w - 2 * margin;
-                float cw = captionPaint.measureText(shot.caption);
+                float cw = captionPaint.measureText(caption);
                 if (cw > maxW) captionPaint.setTextSize(captionPaint.getTextSize() * maxW / cw);
-                canvas.drawText(shot.caption, w / 2f, dst.bottom + h * 0.075f, captionPaint);
+                canvas.drawText(caption, w / 2f, dst.bottom + h * 0.075f, captionPaint);
             }
         }
 
