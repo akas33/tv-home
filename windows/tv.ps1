@@ -1,7 +1,8 @@
 <#
   Windows version of the tv-vibehack helper scripts. Run from PowerShell, from the repo folder:
 
-    .\windows\tv.ps1 prereqs                    one time: installs Python, Android Studio and the SDK
+    .\windows\tv.ps1 prereqs-lite               one time, LIGHT (~460 MB): Java + Android build tools
+    .\windows\tv.ps1 prereqs                    one time, FULL (~1.5 GB): adds the Android Studio editor
     .\windows\tv.ps1 setup                      one time: Python environment for talking to the TV
     .\windows\tv.ps1 probe                      check the connection (accept the prompt on the TV)
     .\windows\tv.ps1 backup                     save package list and settings into .\backup
@@ -42,6 +43,62 @@ function Read-Packages([string]$List) {
 }
 
 switch ($Cmd) {
+    "prereqs-lite" {
+        # Same result as "prereqs" but ~460 MB instead of ~1.5 GB: Java plus the Android command
+        # line tools, skipping the Android Studio editor entirely. Uses BITS, which resumes by
+        # itself after a dropped connection, and checks the download against Google's SHA-256.
+        $sdk = Join-Path $env:LOCALAPPDATA "Android\Sdk"
+        $zipUrl = "https://dl.google.com/android/repository/commandlinetools-win-15859902_latest.zip"
+        $zipSha = "90AE805D20434428BFFCB699C290860F19BB5F66A67E6B330067E3DE801FB04A"
+        $zip = Join-Path $env:TEMP "commandlinetools-win.zip"
+
+        Write-Host "1/4 Java 17 (about 180 MB)..."
+        winget install --id Microsoft.OpenJDK.17 -e --accept-package-agreements --accept-source-agreements
+
+        Write-Host "2/4 Android command line tools (156 MB, resumes if the connection drops)..."
+        if ((Test-Path $zip) -and (Get-FileHash $zip -Algorithm SHA256).Hash -eq $zipSha) {
+            Write-Host "    already downloaded and verified, skipping"
+        } else {
+            try {
+                Import-Module BitsTransfer -ErrorAction Stop
+                Start-BitsTransfer -Source $zipUrl -Destination $zip -Description "Android tools"
+            } catch {
+                Write-Host "    BITS unavailable, falling back to a plain download..."
+                Invoke-WebRequest -Uri $zipUrl -OutFile $zip -UseBasicParsing
+            }
+            $got = (Get-FileHash $zip -Algorithm SHA256).Hash
+            if ($got -ne $zipSha) {
+                Remove-Item $zip -Force -ErrorAction SilentlyContinue
+                throw "Download is corrupt (checksum mismatch). Run this command again - it resumes."
+            }
+            Write-Host "    checksum verified"
+        }
+
+        Write-Host "3/4 Unpacking..."
+        $stage = Join-Path $env:TEMP "cmdline-stage"
+        Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
+        Expand-Archive -Path $zip -DestinationPath $stage -Force
+        $dest = Join-Path $sdk "cmdline-tools"
+        New-Item -ItemType Directory -Force -Path $dest | Out-Null
+        Remove-Item (Join-Path $dest "latest") -Recurse -Force -ErrorAction SilentlyContinue
+        Move-Item (Join-Path $stage "cmdline-tools") (Join-Path $dest "latest")
+        Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
+
+        Write-Host "4/4 SDK pieces for this project (about 125 MB)..."
+        if (-not $env:JAVA_HOME) {
+            $jdk = Get-ChildItem "C:\Program Files\Microsoft" -Filter "jdk-17*" -Directory -ErrorAction SilentlyContinue |
+                   Sort-Object Name -Descending | Select-Object -First 1
+            if ($jdk) { $env:JAVA_HOME = $jdk.FullName }
+        }
+        if (-not $env:JAVA_HOME) { throw "Java 17 not found. Close this window, open a new one, and run this command again." }
+        $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
+        $mgr = Join-Path $dest "latest\bin\sdkmanager.bat"
+        ("y`n" * 40) | & $mgr --sdk_root="$sdk" --licenses 2>&1 | Out-Null
+        & $mgr --sdk_root="$sdk" "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+        Write-Host ""
+        Write-Host "Done. SDK is at $sdk"
+        Write-Host "Next: turn USB debugging back on on the TV, then run  .\windows\tv.ps1 install"
+    }
     "prereqs" {
         # Everything the PC needs, in one command. The Android Studio download is a few GB, so
         # start this first and run the TV steps in another PowerShell window while it works.
@@ -118,7 +175,13 @@ switch ($Cmd) {
         if (-not $env:ANDROID_HOME) { $env:ANDROID_HOME = Join-Path $env:LOCALAPPDATA "Android\Sdk" }
         if (-not $env:JAVA_HOME) {
             $jbr = "C:\Program Files\Android\Android Studio\jbr"
-            if (Test-Path $jbr) { $env:JAVA_HOME = $jbr }
+            if (Test-Path $jbr) {
+                $env:JAVA_HOME = $jbr          # Android Studio brings its own Java
+            } else {
+                $jdk = Get-ChildItem "C:\Program Files\Microsoft" -Filter "jdk-17*" -Directory -ErrorAction SilentlyContinue |
+                       Sort-Object Name -Descending | Select-Object -First 1
+                if ($jdk) { $env:JAVA_HOME = $jdk.FullName }   # the prereqs-lite path
+            }
         }
         if (-not (Test-Path $env:ANDROID_HOME)) { throw "Android SDK not found at $env:ANDROID_HOME. Install Android Studio first (see windows\README.md)." }
         if (-not $env:JAVA_HOME) { throw "JAVA_HOME not set. Install Android Studio or JDK 17 (see windows\README.md)." }
