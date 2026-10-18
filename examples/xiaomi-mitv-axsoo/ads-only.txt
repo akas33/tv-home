@@ -1,0 +1,38 @@
+# Xiaomi Mi TV 4A Pro (model MiTV-AXSO0) - ADS ONLY, keeps the stock home screen.
+#
+# Use this when you want the ads gone but are not ready to build and install a new launcher.
+# It removes Xiaomi's own ads, promos and tracking and leaves the Google TV home screen in place,
+# so the Home button always works. Nothing here can leave you without a home screen.
+#
+# Run it with:   .\windows\tv.ps1 ads-only examples\xiaomi-mitv-axsoo\ads-only.txt
+# That command switches the home screen to the Google TV launcher FIRST, then disables PatchWall.
+# Undo with:     .\windows\tv.ps1 restore examples\xiaomi-mitv-axsoo\ads-only.txt
+#
+# Kept ON on purpose: casting, firmware updates, voice assistant, the Google TV launcher and its
+# recommendation services (the launcher needs those; disabling them belongs to the full list).
+#
+# Package names vary between models. Check yours with `.\windows\tv.ps1 packages` first and
+# comment out anything your TV does not have.
+
+# Xiaomi telemetry and analytics
+com.miui.tv.analytics
+com.xiaomi.statistic
+
+# PatchWall and the Mi promo / sponsored content rows - the main source of the ads
+com.mitv.tvhome.atv
+com.mitv.tvhome.michannel
+com.mitv.tvhome.mitvplus
+com.xm.webcontent
+com.xiaomi.floatingframe
+
+# Xiaomi background services nobody needs
+com.xiaomi.mitv.tvmanager              # "TV Manager" cleaner app
+com.xiaomi.mitv.smartshare
+android.autoinstalls.config.xiaomi.amelie   # silently installs apps Xiaomi chooses
+
+# Preloaded apps nobody asked for
+com.xiaomi.mimusic2
+com.google.android.play.games
+com.google.android.feedback
+com.google.android.apps.tachyon        # Google Duo
+fusion.android.tv.demo

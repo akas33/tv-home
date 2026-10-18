@@ -5,6 +5,7 @@
     .\windows\tv.ps1 probe                      check the connection (accept the prompt on the TV)
     .\windows\tv.ps1 backup                     save package list and settings into .\backup
     .\windows\tv.ps1 packages                   list everything installed on the TV
+    .\windows\tv.ps1 ads-only <list.txt>        ads gone, stock home screen kept, nothing to build
     .\windows\tv.ps1 disable <list.txt>         switch off the apps in a debloat list
     .\windows\tv.ps1 restore <list.txt>         undo it and bring the stock launcher back
     .\windows\tv.ps1 install                    build and install the launcher + screensaver
@@ -125,6 +126,36 @@ switch ($Cmd) {
     "brief" {
         Need-Venv
         & $Py -I tools\push-brief.py @Rest
+    }
+    "ads-only" {
+        # Ads gone, stock home screen kept, no APK to build. Order matters: if PatchWall is the
+        # current home screen, disabling it first would leave the Home button with nowhere to go,
+        # so the Google TV launcher is made the home screen before anything is switched off.
+        Need-Venv
+        if (-not $Rest) { throw "usage: tv.ps1 ads-only examples\xiaomi-mitv-axsoo\ads-only.txt" }
+        $list = $Rest[0]
+        if (-not (Test-Path $list)) { throw "list not found: $list" }
+        $pkgs = @(Read-Packages $list)
+        if ($pkgs -contains "com.google.android.tvlauncher") {
+            throw "that list disables the stock launcher - use 'disable' after installing the new one"
+        }
+        Write-Host "Checking the Google TV launcher is present before touching PatchWall..."
+        $present = (& $Py -I tools\tv.py "pm list packages com.google.android.tvlauncher") -join ""
+        if ($present -notmatch "com.google.android.tvlauncher") {
+            throw "The Google TV launcher is not on this TV, so disabling PatchWall would leave no home screen. Stop here and tell Claude."
+        }
+        $lines = @(
+            "pm enable com.google.android.tvlauncher",
+            "cmd package set-home-activity --user 0 com.google.android.tvlauncher"
+        ) + ($pkgs | ForEach-Object { "pm disable-user --user 0 $_" }) + @(
+            "cmd package resolve-activity -c android.intent.category.HOME --user 0 | grep -i packageName",
+            "pm list packages -d"
+        )
+        Run-Batch $lines
+        Write-Host ""
+        Write-Host "Done. Press Home on the remote: you should get the Google TV home screen, no Xiaomi ads."
+        Write-Host "If anything looks wrong: .\windows\tv.ps1 restore $list"
+        Write-Host "When you are happy, close the door you opened: .\windows\tv.ps1 lockdown"
     }
     "lockdown" {
         # Network ADB is the biggest hole this project opens: anything on your Wi-Fi can reach
