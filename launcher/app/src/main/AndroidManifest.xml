@@ -31,5 +31,19 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <!-- Screensaver (Android "Daydream"). Pick it under Settings > Device Preferences >
+             Screen saver, or run launcher/set-screensaver.sh. -->
+        <service
+            android:name=".AmbientDream"
+            android:exported="true"
+            android:label="@string/screensaver_name"
+            android:icon="@mipmap/ic_launcher"
+            android:permission="android.permission.BIND_DREAM_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.dreams.DreamService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

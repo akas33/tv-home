@@ -61,6 +61,26 @@ TV_HOST=192.168.1.50 launcher/build-and-install.sh
 Needs JDK 17 and the Android SDK (platform 34, build-tools 34.0.0). On macOS:
 `brew install openjdk@17 android-commandlinetools && sdkmanager "platforms;android-34" "build-tools;34.0.0"`.
 
+## The screensaver (Ambient)
+
+Installed together with the launcher (same APK). Slow drifting colour on black that follows the
+time of day (amber in the morning, teal by day, rose at dusk, dim indigo at night), plus a large
+thin clock that wanders around the screen so no pixel stays lit. No network, about 20 fps.
+
+```bash
+TV_HOST=192.168.1.50 launcher/build-and-install.sh       # installs the launcher and screensaver
+TV_HOST=192.168.1.50 launcher/set-screensaver.sh preview # select it and start it now
+```
+
+**Daily brief.** Push a few short lines and the screensaver rotates them under the clock:
+
+```bash
+TV_HOST=192.168.1.50 tools/venv/bin/python -I tools/push-brief.py "Rain from 4 pm" "Dentist 6:30" "Mum's birthday tomorrow"
+```
+
+Nothing is fetched by the TV: whatever runs on your computer (a cron job, or a scheduled Claude
+task that summarises your calendar, weather and news) writes the lines and pushes them.
+
 ## Talking to the TV by hand
 
 ```bash
