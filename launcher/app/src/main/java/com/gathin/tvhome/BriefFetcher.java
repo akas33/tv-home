@@ -43,6 +43,7 @@ final class BriefFetcher {
         new Thread(() -> {
             try {
                 List<String> out = new ArrayList<>();
+                try { messages(app, out); } catch (Exception ignored) { }
                 try { weather(app, out); } catch (Exception ignored) { }
                 try { news(app, out); } catch (Exception ignored) { }
                 if (!out.isEmpty()) {
@@ -54,6 +55,37 @@ final class BriefFetcher {
                 busy = false;
             }
         }, "brief-fetch").start();
+    }
+
+    // ---- family message board (ntfy) ----
+
+    /**
+     * Notes sent from any phone through ntfy (free, no account): install the ntfy app or open the
+     * topic page in a browser, and anything posted to the topic shows up here for the next 12 hours.
+     */
+    private static void messages(Context c, List<String> out) throws Exception {
+        String topic = c.getString(R.string.message_topic).trim();
+        if (topic.isEmpty()) return;
+        String server = c.getString(R.string.message_server).trim();
+        if (server.isEmpty()) server = "https://ntfy.sh";
+        String body = get(server.replaceAll("/+$", "") + "/" + topic + "/json?poll=1&since=12h");
+        List<String> found = new ArrayList<>();
+        for (String row : body.split("\n")) {
+            row = row.trim();
+            if (row.isEmpty()) continue;
+            try {
+                JSONObject m = new JSONObject(row);
+                if (!"message".equals(m.optString("event"))) continue;
+                String text = m.optString("message").trim();
+                if (text.isEmpty()) continue;
+                if (text.length() > 160) text = text.substring(0, 157) + "...";
+                found.add("Note: " + text);
+            } catch (Exception ignored) {
+                // skip a malformed row
+            }
+        }
+        // newest first, at most 5
+        for (int i = found.size() - 1, n = 0; i >= 0 && n < 5; i--, n++) out.add(found.get(i));
     }
 
     // ---- weather ----

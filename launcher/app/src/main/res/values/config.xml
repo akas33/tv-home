@@ -31,6 +31,19 @@
     <string name="weather_lon" translatable="false"></string>
     <string name="weather_label" translatable="false"></string>
 
+    <!-- Screensaver family message board, via ntfy (free, no account). Pick a long random topic name
+         that only your family knows, e.g. "kitchen-tv-7f3k9q2x": anyone who knows it can post.
+         Family then installs the ntfy app (or opens https://ntfy.sh/<topic>) and sends a note;
+         it appears on the TV screensaver for 12 hours. Leave the topic empty to turn it off. -->
+    <string name="message_topic" translatable="false"></string>
+    <string name="message_server" translatable="false">https://ntfy.sh</string>
+
+    <!-- Bedtime dimming: from dim_start_hour the screensaver fades to black over dim_ramp_minutes and
+         stays black until dim_end_hour (24h clock). Set dim_start_hour to -1 to turn it off. -->
+    <integer name="dim_start_hour">23</integer>
+    <integer name="dim_end_hour">6</integer>
+    <integer name="dim_ramp_minutes">45</integer>
+
     <!-- Screensaver headlines: any RSS or Atom feed URL (https). Leave empty to turn news off. -->
     <string name="news_feed_url" translatable="false"></string>
 </resources>

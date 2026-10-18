@@ -81,13 +81,14 @@ public class AmbientDream extends DreamService {
         private long briefLoadedAt = 0;
         private long briefStart = 0;
 
+        private float lastDim = 1f;
         private long t0;
         private boolean running;
         private final Runnable tick = new Runnable() {
             @Override public void run() {
                 if (!running) return;
                 invalidate();
-                postDelayed(this, FRAME_MS);
+                postDelayed(this, lastDim <= 0f ? 1000 : FRAME_MS); // fully dimmed: barely wake up
             }
         };
 
@@ -186,13 +187,37 @@ public class AmbientDream extends DreamService {
             return getContext().getString(R.string.good_night);
         }
 
+        /** 1 = full brightness, 0 = black. Bedtime window comes from config.xml (dim_*). */
+        private float dimFactor(Calendar cal) {
+            int startH = getResources().getInteger(R.integer.dim_start_hour);
+            int endH = getResources().getInteger(R.integer.dim_end_hour);
+            float ramp = Math.max(1, getResources().getInteger(R.integer.dim_ramp_minutes));
+            if (startH < 0 || startH > 23 || endH < 0 || endH > 23) return 1f;
+            float m = cal.get(Calendar.HOUR_OF_DAY) * 60f + cal.get(Calendar.MINUTE)
+                    + cal.get(Calendar.SECOND) / 60f;
+            float start = startH * 60f;
+            float windowLen = ((endH - startH) * 60f + 1440f) % 1440f;
+            if (windowLen == 0f) return 1f;
+            float elapsed = (m - start + 1440f) % 1440f;
+            if (elapsed >= windowLen) return 1f;               // outside bedtime window
+            if (elapsed < ramp) return 1f - elapsed / ramp;    // fading out
+            return 0f;                                         // fully black
+        }
+
         @Override
         protected void onDraw(Canvas canvas) {
+            drawScene(canvas);
+            if (lastDim < 1f) canvas.drawColor(Color.argb((int) (255 * (1f - lastDim)), 0, 0, 0));
+        }
+
+        private void drawScene(Canvas canvas) {
             int w = getWidth(), h = getHeight();
             if (w == 0 || h == 0) return;
             long now = System.currentTimeMillis();
             float sec = (now - t0) / 1000f;
             Calendar cal = Calendar.getInstance();
+            lastDim = dimFactor(cal);
+            if (lastDim <= 0f) return;                         // black; onDraw paints it
             ensurePalette(cal, w, h);
             maybeReloadBrief(now);
 

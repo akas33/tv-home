@@ -77,6 +77,16 @@ TV_HOST=192.168.1.50 launcher/set-screensaver.sh preview # select it and start i
 `news_feed_url`), rebuild once, and the TV fetches them itself while the screensaver is on (at most
 every 30 minutes, via Open-Meteo, which needs no account). Leave a value empty to turn that part off.
 
+**Family message board.** Set `message_topic` in `config.xml` to a long random name only your
+family knows. Anyone installs the free ntfy app (or opens `https://ntfy.sh/<topic>`), posts a note,
+and "Note: ..." shows on the screensaver for the next 12 hours. Anyone who knows the topic can
+post, so keep it private. No computer is involved.
+
+**Bedtime dimming.** `dim_start_hour` / `dim_end_hour` / `dim_ramp_minutes` in `config.xml` (default
+23:00 to 06:00, 45-minute fade). The screen fades to black and stays black until morning. Set
+`dim_start_hour` to -1 to turn it off. A black screensaver still leaves the TV on, so use the TV's
+own sleep timer if you want it fully off.
+
 **Optional: push your own lines.** From a computer, whenever you like (nothing has to stay on):
 
 ```bash
