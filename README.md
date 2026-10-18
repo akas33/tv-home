@@ -72,14 +72,18 @@ TV_HOST=192.168.1.50 launcher/build-and-install.sh       # installs the launcher
 TV_HOST=192.168.1.50 launcher/set-screensaver.sh preview # select it and start it now
 ```
 
-**Daily brief.** Push a few short lines and the screensaver rotates them under the clock:
+**Weather and headlines, no computer needed.** Put your coordinates and an RSS feed URL in
+`launcher/app/src/main/res/values/config.xml` (`weather_lat`, `weather_lon`, `weather_label`,
+`news_feed_url`), rebuild once, and the TV fetches them itself while the screensaver is on (at most
+every 30 minutes, via Open-Meteo, which needs no account). Leave a value empty to turn that part off.
+
+**Optional: push your own lines.** From a computer, whenever you like (nothing has to stay on):
 
 ```bash
 TV_HOST=192.168.1.50 tools/venv/bin/python -I tools/push-brief.py "Rain from 4 pm" "Dentist 6:30" "Mum's birthday tomorrow"
 ```
 
-Nothing is fetched by the TV: whatever runs on your computer (a cron job, or a scheduled Claude
-task that summarises your calendar, weather and news) writes the lines and pushes them.
+Pushed lines are shown first, followed by the weather and headlines.
 
 ## Talking to the TV by hand
 

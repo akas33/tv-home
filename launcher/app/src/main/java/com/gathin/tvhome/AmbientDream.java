@@ -156,7 +156,8 @@ public class AmbientDream extends DreamService {
         // ---- brief: short lines pushed to <app files dir>/brief.txt ----
 
         private void maybeReloadBrief(long now) {
-            if (now - briefLoadedAt < BRIEF_RELOAD_MS) return;
+            BriefFetcher.refreshIfStale(getContext());
+            if (now - briefLoadedAt < BRIEF_RELOAD_MS && !(brief.isEmpty() && now - briefLoadedAt > 15_000)) return;
             briefLoadedAt = now;
             List<String> fresh = new ArrayList<>();
             File f = new File(getContext().getExternalFilesDir(null), "brief.txt");
@@ -171,6 +172,7 @@ public class AmbientDream extends DreamService {
                     // unreadable file: just show no brief
                 }
             }
+            fresh.addAll(BriefFetcher.lines); // weather + headlines the TV fetched itself
             brief.clear();
             brief.addAll(fresh);
             if (briefIdx >= brief.size()) briefIdx = 0;

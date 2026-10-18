@@ -24,4 +24,13 @@
 
     <!-- Tiles per row in the grid; the dock always has this many slots. -->
     <integer name="columns">4</integer>
+
+    <!-- Screensaver weather (Open-Meteo, free, no account). Latitude/longitude in decimal degrees,
+         e.g. 12.97 and 77.59. Leave lat or lon empty to turn weather off. -->
+    <string name="weather_lat" translatable="false"></string>
+    <string name="weather_lon" translatable="false"></string>
+    <string name="weather_label" translatable="false"></string>
+
+    <!-- Screensaver headlines: any RSS or Atom feed URL (https). Leave empty to turn news off. -->
+    <string name="news_feed_url" translatable="false"></string>
 </resources>
