@@ -8,3 +8,5 @@ launcher/local.properties
 # your own TV's dumps (serial, android_id, device names) stay local
 backup/
 .DS_Store
+# your passwords, tokens and allowed-sender lists stay local
+launcher/app/src/main/res/values/secrets.xml

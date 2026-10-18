@@ -8,6 +8,10 @@ export JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17}"
 export ANDROID_HOME="${ANDROID_HOME:-/opt/homebrew/share/android-commandlinetools}"
 export PATH="$JAVA_HOME/bin:$PATH"
 [ -f local.properties ] || echo "sdk.dir=$ANDROID_HOME" > local.properties
+# secrets.xml holds passwords and tokens and is never committed; start it from the template.
+SECRETS=app/src/main/res/values/secrets.xml
+[ -f "$SECRETS" ] || { cp secrets.example.xml "$SECRETS"; \
+  echo "Created $SECRETS from the template. Email and Telegram stay off until you fill it in."; }
 ./gradlew assembleDebug -q --console=plain
 PY=../tools/venv/bin/python
 APK=app/build/outputs/apk/debug/app-debug.apk

@@ -56,6 +56,7 @@ public class BoardService extends Service {
     public void onCreate() {
         super.onCreate();
         instance = this;
+        Board.setKeepHours(getResources().getInteger(R.integer.board_keep_hours));
         notifier = new OverlayNotifier(this);
         startInForeground();
 

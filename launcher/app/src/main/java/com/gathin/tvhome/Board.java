@@ -17,9 +17,11 @@ import java.util.Map;
  * synchronised; sources add from background threads while the UI reads on the main thread.
  */
 final class Board {
-    private static final long KEEP_MS = 12L * 60 * 60 * 1000;
     private static final int MAX_PHOTOS = 3;
     private static final int MAX_NOTES = 8;
+
+    /** How long anything stays, from board_keep_hours. Lower it for more privacy. */
+    private static volatile long keepMs = 12L * 60 * 60 * 1000;
 
     /** One thing on the board. A photo item has a bitmap; a note item does not. */
     static final class Item {
@@ -54,6 +56,16 @@ final class Board {
     private static final LinkedHashMap<String, Item> items = new LinkedHashMap<>();
 
     private Board() {}
+
+    static void setKeepHours(int hours) {
+        if (hours > 0) keepMs = hours * 60L * 60 * 1000;
+    }
+
+    /** Wipes the board now: the Clear button on the upload page, for when guests walk in. */
+    static synchronized void clear() {
+        items.clear();
+        newest = null;
+    }
 
     /** Adds an item unless its id is already on the board. Returns true if it is new. */
     static synchronized boolean add(Item item) {
@@ -95,7 +107,7 @@ final class Board {
 
     /** Drops anything older than 12 hours, then trims to the caps, oldest first. */
     private static void prune() {
-        long cutoff = System.currentTimeMillis() - KEEP_MS;
+        long cutoff = System.currentTimeMillis() - keepMs;
         int photos = 0, notes = 0;
         // walk newest-first so the caps keep the most recent
         List<Item> all = new ArrayList<>(items.values());

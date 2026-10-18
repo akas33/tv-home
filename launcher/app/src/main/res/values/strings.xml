@@ -30,4 +30,8 @@
     <string name="upload_empty">Write a note or pick a photo first.</string>
     <string name="upload_bad_pin">Wrong code.</string>
     <string name="upload_failed">That did not send. Please try again.</string>
+    <string name="upload_send">Send to the TV</string>
+    <string name="upload_clear">Clear the TV screen</string>
+    <string name="upload_cleared">Cleared. Nothing is showing on the TV now.</string>
+    <string name="upload_blocked">Blocked: posts must come from the TV\'s own page.</string>
 </resources>

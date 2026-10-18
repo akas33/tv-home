@@ -1,6 +1,7 @@
 package com.gathin.tvhome;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -63,6 +64,8 @@ public class AmbientDream extends DreamService {
         private static final long BRIEF_CYCLE_MS = 9_000; // one line: fade in, hold, fade out
         private static final long BRIEF_FADE_MS = 1_200;
         private static final long PHOTO_SLOT_MS = 20_000; // photo on screen, then clock, alternating
+        private static final String PREFS = "ambient";
+        private static final String KEY_BYPASS = "dim_bypass_until";
 
         private final Paint blobPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint clockPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -134,9 +137,36 @@ public class AmbientDream extends DreamService {
             post(tick);
         }
 
+        /**
+         * Leaving the screensaver while it had dimmed means somebody is still up, so dimming is
+         * suspended for dim_bypass_minutes: the screen stays bright for the rest of the evening
+         * instead of going black again every few minutes.
+         */
         void stop() {
             running = false;
             removeCallbacks(tick);
+            if (lastDim >= 1f) return;
+            int minutes = getResources().getInteger(R.integer.dim_bypass_minutes);
+            if (minutes <= 0) return;
+            try {
+                prefs().edit()
+                        .putLong(KEY_BYPASS, System.currentTimeMillis() + minutes * 60_000L)
+                        .apply();
+            } catch (Exception ignored) {
+                // no preferences available: dimming simply stays on
+            }
+        }
+
+        private SharedPreferences prefs() {
+            return getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        }
+
+        private boolean dimSuspended() {
+            try {
+                return System.currentTimeMillis() < prefs().getLong(KEY_BYPASS, 0L);
+            } catch (Exception e) {
+                return false;
+            }
         }
 
         @Override
@@ -205,6 +235,7 @@ public class AmbientDream extends DreamService {
 
         /** 1 = full brightness, 0 = black. Bedtime window comes from config.xml (dim_*). */
         private float dimFactor(Calendar cal) {
+            if (dimSuspended()) return 1f;          // you pressed a button: stay bright
             int startH = getResources().getInteger(R.integer.dim_start_hour);
             int endH = getResources().getInteger(R.integer.dim_end_hour);
             float ramp = Math.max(1, getResources().getInteger(R.integer.dim_ramp_minutes));

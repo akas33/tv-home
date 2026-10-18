@@ -9,6 +9,7 @@
     .\windows\tv.ps1 restore <list.txt>         undo it and bring the stock launcher back
     .\windows\tv.ps1 install                    build and install the launcher + screensaver
     .\windows\tv.ps1 screensaver [preview]      select the Ambient screensaver (preview starts it now)
+    .\windows\tv.ps1 lockdown                   turn TV debugging back off when you are finished
     .\windows\tv.ps1 chatid <bot token>         list the Telegram chat IDs allowed on the TV board
     .\windows\tv.ps1 brief "line 1" "line 2"    optional: send your own lines to the screensaver
 
@@ -79,6 +80,12 @@ switch ($Cmd) {
     "install" {
         Need-Venv
         Set-Location (Join-Path $Repo "launcher")
+        # secrets.xml holds passwords and tokens and is never committed; start it from the template.
+        $secrets = "app\src\main\res\values\secrets.xml"
+        if (-not (Test-Path $secrets)) {
+            Copy-Item "secrets.example.xml" $secrets
+            Write-Host "Created $secrets from the template. Email and Telegram stay off until you fill it in."
+        }
         if (-not $env:ANDROID_HOME) { $env:ANDROID_HOME = Join-Path $env:LOCALAPPDATA "Android\Sdk" }
         if (-not $env:JAVA_HOME) {
             $jbr = "C:\Program Files\Android\Android Studio\jbr"
@@ -118,6 +125,16 @@ switch ($Cmd) {
     "brief" {
         Need-Venv
         & $Py -I tools\push-brief.py @Rest
+    }
+    "lockdown" {
+        # Network ADB is the biggest hole this project opens: anything on your Wi-Fi can reach
+        # port 5555, and there are worms that scan home networks for exactly that. Run this once
+        # you have finished installing. The TV drops this connection straight away, which is normal.
+        Write-Host "Turning off debugging on the TV. This connection will drop - that is expected."
+        try { Run-Batch @("settings put global adb_enabled 0") } catch { }
+        Write-Host ""
+        Write-Host "Done. Also switch off 'USB debugging' in Settings > Device Preferences > Developer options."
+        Write-Host "To change anything later, turn USB debugging back on and run this script again."
     }
     "chatid" {
         # Prints the chat IDs allowed to post to the TV board. Each person sends any message to the

@@ -76,6 +76,9 @@ final class UploadServer implements Runnable {
     // ---- request handling ----
 
     private void handle(Socket sock) throws IOException {
+        // Only machines on your own network, never anything routed in from outside.
+        if (!isLocal(sock.getInetAddress())) return;
+
         InputStream in = sock.getInputStream();
         OutputStream out = sock.getOutputStream();
 
@@ -84,6 +87,21 @@ final class UploadServer implements Runnable {
         String headers = new String(head, StandardCharsets.ISO_8859_1);
         String firstLine = headers.substring(0, Math.max(0, headers.indexOf('\n'))).trim();
         boolean post = firstLine.startsWith("POST");
+
+        // A form on some other website must not be able to push images onto the TV while a phone
+        // on this Wi-Fi happens to be browsing it. Browsers send Origin on cross-site posts.
+        if (post) {
+            String origin = textHeader(headers, "origin");
+            if (origin != null && !origin.isEmpty()) {
+                String o = origin.replaceFirst("(?i)^https?://", "").trim();
+                String host = textHeader(headers, "host");
+                if (host == null || !o.equalsIgnoreCase(host.trim())) {
+                    send(out, 403, "text/plain; charset=utf-8",
+                            context.getString(R.string.upload_blocked).getBytes(StandardCharsets.UTF_8));
+                    return;
+                }
+            }
+        }
 
         if (!post) {
             send(out, 200, "text/html; charset=utf-8", page(null).getBytes(StandardCharsets.UTF_8));
@@ -109,7 +127,7 @@ final class UploadServer implements Runnable {
     /** Pulls the name, note and photo out of a multipart body and puts them on the board. */
     private String accept(byte[] body, String boundary) {
         byte[] sep = ("--" + boundary).getBytes(StandardCharsets.ISO_8859_1);
-        String who = "", note = "", givenPin = "";
+        String who = "", note = "", givenPin = "", clear = "";
         Bitmap photo = null;
         int at = indexOf(body, sep, 0);
         while (at >= 0) {
@@ -130,11 +148,16 @@ final class UploadServer implements Runnable {
                 if ("who".equals(name)) who = value;
                 else if ("note".equals(name)) note = value;
                 else if ("pin".equals(name)) givenPin = value;
+                else if ("clear".equals(name)) clear = value;
             }
             at = next;
         }
 
         if (!pin.isEmpty() && !pin.equals(givenPin)) return context.getString(R.string.upload_bad_pin);
+        if (!clear.isEmpty()) {
+            Board.clear();
+            return context.getString(R.string.upload_cleared);
+        }
         if (note.length() > 160) note = note.substring(0, 157) + "...";
         if (photo == null && note.isEmpty()) return context.getString(R.string.upload_empty);
 
@@ -167,6 +190,8 @@ final class UploadServer implements Runnable {
                 + "input[type=file]{padding:10px;border-style:dashed}"
                 + "button{margin-top:22px;width:100%;padding:15px;border:0;border-radius:12px;"
                 + "background:#f4f4f5;color:#0b0b0d;font-size:16px;font-weight:600}"
+                + "button.ghost{margin-top:10px;background:transparent;color:#a1a1aa;"
+                + "border:1px solid #2a2a30;font-weight:500}"
                 + "p.ok{margin:0 0 18px;padding:12px 14px;border-radius:12px;"
                 + "background:#132a1c;border:1px solid #1f5133;color:#86efac;font-size:14px}"
                 + "</style></head><body><form method=post enctype=multipart/form-data>"
@@ -178,7 +203,9 @@ final class UploadServer implements Runnable {
                 + "<label for=photo>Photo</label>"
                 + "<input id=photo type=file name=photo accept=image/*>"
                 + (pin.isEmpty() ? "" : "<label for=pin>Code</label><input id=pin name=pin>")
-                + "<button type=submit>Send to the TV</button>"
+                + "<button type=submit>" + escape(context.getString(R.string.upload_send)) + "</button>"
+                + "<button type=submit name=clear value=1 class=ghost>"
+                + escape(context.getString(R.string.upload_clear)) + "</button>"
                 + "<script>var k='tvname';var w=document.getElementById('who');"
                 + "try{w.value=localStorage.getItem(k)||''}catch(e){}"
                 + "w.form.addEventListener('submit',function(){try{localStorage.setItem(k,w.value)}catch(e){}});"
@@ -222,6 +249,22 @@ final class UploadServer implements Runnable {
             read += n;
         }
         return read == len ? data : slice(data, 0, read);
+    }
+
+    /** True for loopback and ordinary home-network addresses (10.x, 172.16-31.x, 192.168.x). */
+    private static boolean isLocal(java.net.InetAddress a) {
+        return a != null
+                && (a.isLoopbackAddress() || a.isSiteLocalAddress() || a.isLinkLocalAddress());
+    }
+
+    private static String textHeader(String headers, String name) {
+        for (String line : headers.split("\r?\n")) {
+            int c = line.indexOf(':');
+            if (c > 0 && line.substring(0, c).trim().equalsIgnoreCase(name)) {
+                return line.substring(c + 1).trim();
+            }
+        }
+        return null;
     }
 
     private static int intHeader(String headers, String name) {
