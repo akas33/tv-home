@@ -1,5 +1,5 @@
-# Starting list for a Xiaomi Mi TV with model MiTV-AXSOO (exact name was not given in full).
-# Based on the Mi TV 4A list. Package names differ between models, so BEFORE applying, run
+# Xiaomi Mi TV 4A Pro 32" (model MiTV-AXSO0), PatchWall Android TV.
+# Based on the closely related Mi TV 4A list. Package names can still differ, so BEFORE applying, run
 #   .\windows\tv.ps1 packages
 # and comment out or remove lines for packages that your TV does not have.
 # Kept ON on purpose (commented out): casting (Chromecast + Mi cast), firmware updates, voice assistant.
