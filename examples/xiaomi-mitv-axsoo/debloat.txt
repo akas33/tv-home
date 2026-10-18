@@ -1,38 +1,41 @@
-# Xiaomi Mi TV 4A Pro 32" (model MiTV-AXSO0), PatchWall Android TV.
-# Based on the closely related Mi TV 4A list. Package names can still differ, so BEFORE applying, run
-#   .\windows\tv.ps1 packages
-# and comment out or remove lines for packages that your TV does not have.
-# Kept ON on purpose (commented out): casting (Chromecast + Mi cast), firmware updates, voice assistant.
-# Everything below is DISABLED, not uninstalled. Undo with the restore command.
+# Xiaomi Mi TV 4A Pro (model MiTV-AXSO0, codename dangal, Android 9, build PI.6036)
+# FULL list - also replaces the stock launcher, so ONLY apply this AFTER installing the new one:
+#   .\windows\tv.ps1 install
+#   .\windows\tv.ps1 disable examples\xiaomi-mitv-axsoo\debloat.txt
+#
+# VERIFIED against a real `pm list packages` dump from this exact TV on 2026-10-18; every line
+# below was confirmed present. If you only want the ads gone and would rather keep the stock
+# home screen, use ads-only.txt with the `ads-only` command instead.
+#
+# Undo:   .\windows\tv.ps1 restore examples\xiaomi-mitv-axsoo\debloat.txt
+#
+# Deliberately KEPT ON: casting (milinkservice, wfdsinkhelperservice, mediashell), firmware
+# updates (updateservice), the Google Assistant (katniss), and com.google.android.leanbacklauncher,
+# which stays enabled on purpose as a fallback home screen if the new launcher ever misbehaves.
 
-
-# Xiaomi telemetry
+# Xiaomi telemetry and analytics
 com.miui.tv.analytics
 com.xiaomi.statistic
 
-# PatchWall and Mi content rows / promos
+# PatchWall and the Mi promo / sponsored content rows
 com.mitv.tvhome.atv
-com.mitv.tvhome.michannel
 com.mitv.tvhome.mitvplus
 com.xm.webcontent
 com.xiaomi.floatingframe
 
+# Silently installs apps Xiaomi chooses, without asking
+android.autoinstalls.config.xioami.dangal
+
 # Xiaomi background services
 com.xiaomi.mitv.tvmanager              # "TV Manager" cleaner app
-com.xiaomi.mitv.smartshare
-# com.mitv.milinkservice   # kept: Mi cast, you use casting
-# com.xiaomi.mitv.updateservice   # kept: firmware updates
-# com.xiaomi.amazon.alexa   # kept: voice assistant bridge
-android.autoinstalls.config.xiaomi.amelie
+com.xiaomi.mitv.smartshare             # Xiaomi's own share app; Chromecast and Miracast stay on
 
 # Preloaded apps nobody asked for
 com.xiaomi.mimusic2
 com.google.android.play.games
 com.google.android.feedback
-com.google.android.apps.tachyon        # Google Duo
-fusion.android.tv.demo
 
-# Stock Google TV launcher and its recommendation services, replaced by launcher/
+# Stock Google TV launcher and its recommendation rows, replaced by launcher/
 com.google.android.tvlauncher
 com.google.android.tvrecommendations
 com.google.android.leanbacklauncher.recommendations
