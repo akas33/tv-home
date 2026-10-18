@@ -9,6 +9,7 @@
     .\windows\tv.ps1 restore <list.txt>         undo it and bring the stock launcher back
     .\windows\tv.ps1 install                    build and install the launcher + screensaver
     .\windows\tv.ps1 screensaver [preview]      select the Ambient screensaver (preview starts it now)
+    .\windows\tv.ps1 chatid <bot token>         list the Telegram chat IDs allowed on the TV board
     .\windows\tv.ps1 brief "line 1" "line 2"    optional: send your own lines to the screensaver
 
   The TV address is read from the TV_HOST environment variable, default 192.168.29.8.
@@ -113,6 +114,23 @@ switch ($Cmd) {
     "brief" {
         Need-Venv
         & $Py -I tools\push-brief.py @Rest
+    }
+    "chatid" {
+        # Prints the chat IDs allowed to post to the TV board. Each person sends any message to the
+        # bot first, then you run this and paste the IDs into telegram_allowed_chats in config.xml.
+        if (-not $Rest) { throw "usage: tv.ps1 chatid <bot token from @BotFather>" }
+        $resp = Invoke-RestMethod "https://api.telegram.org/bot$($Rest[0])/getUpdates"
+        if (-not $resp.ok) { throw "Telegram refused the token: $($resp.description)" }
+        $msgs = @($resp.result | ForEach-Object { $_.message } | Where-Object { $_ })
+        if ($msgs.Count -eq 0) {
+            Write-Host "No messages yet. Open Telegram, send 'hi' to your bot from each phone, then run this again."
+        } else {
+            Write-Host "chat ID        who            type"
+            $msgs | ForEach-Object { "{0,-14} {1,-14} {2}" -f $_.chat.id, $_.from.first_name, $_.chat.type } |
+                Sort-Object -Unique | ForEach-Object { Write-Host $_ }
+            Write-Host ""
+            Write-Host "Put these IDs (comma separated) in telegram_allowed_chats, then run: .\windows\tv.ps1 install"
+        }
     }
     default { Get-Help $PSCommandPath | Out-String | Write-Host }
 }

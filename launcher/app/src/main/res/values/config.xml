@@ -31,11 +31,24 @@
     <string name="weather_lon" translatable="false">77.5946</string>
     <string name="weather_label" translatable="false">Bengaluru</string>
 
-    <!-- Screensaver family message board, via ntfy (free, no account). Pick a long random topic name
-         that only your family knows, e.g. "kitchen-tv-7f3k9q2x": anyone who knows it can post.
-         Family then installs the ntfy app (or opens https://ntfy.sh/<topic>) and sends a note;
-         it appears on the TV screensaver for 12 hours. Leave the topic empty to turn it off. -->
-    <string name="message_topic" translatable="false">home-tv-lagzuqp3wll1</string>
+    <!-- PRIVATE family board: notes AND photos sent to your own Telegram bot from any phone,
+         from anywhere. Only the chat IDs listed below are accepted, so nobody else can put
+         anything on the TV. Both values are needed; leave the token empty to turn the board off.
+         Setup: windows/README.md > "Family board". Keep the token secret, like a password. -->
+    <string name="telegram_bot_token" translatable="false"></string>
+    <!-- Comma-separated chat IDs allowed to post, e.g. "123456789, 987654321".
+         Find them with:  .\windows\tv.ps1 chatid <your bot token>
+         Empty means nothing is shown at all (secure default). -->
+    <string name="telegram_allowed_chats" translatable="false"></string>
+
+    <!-- A photo this TV has just received holds the whole screen for this many minutes, then photos
+         and the clock take turns. Counted from when the TV first saw the photo, so a photo sent
+         while the TV was off still gets its moment when the TV comes back on. -->
+    <integer name="photo_feature_minutes">10</integer>
+
+    <!-- Old public-topic board (ntfy). Left off: a topic name is only a secret word, and anyone who
+         learns it can read and post. Use the Telegram board above instead. -->
+    <string name="message_topic" translatable="false"></string>
     <string name="message_server" translatable="false">https://ntfy.sh</string>
 
     <!-- Bedtime dimming: from dim_start_hour the screensaver fades to black over dim_ramp_minutes and

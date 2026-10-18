@@ -4,7 +4,9 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RadialGradient;
+import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.service.dreams.DreamService;
@@ -23,10 +25,12 @@ import java.util.Locale;
 
 /**
  * Ambient screensaver: slow drifting colour on pure black, a large thin clock that wanders around
- * the screen (so no pixel stays lit, which protects the panel), and an optional "brief" of short
- * lines pushed from your computer with tools/push-brief.py (weather, calendar, a note, anything).
+ * the screen (so no pixel stays lit, which protects the panel), notes and photos from the family
+ * board, and today's weather and headlines.
  *
- * Light on purpose: three cached radial gradients, ~20 fps, no network, no background work.
+ * A photo that this TV has just received takes over the screen for a few minutes
+ * (photo_feature_minutes), which is the "look at this now" case; after that photos and the clock
+ * alternate. Light on purpose: cached gradients, ~20 fps, no background services.
  */
 public class AmbientDream extends DreamService {
 
@@ -58,12 +62,18 @@ public class AmbientDream extends DreamService {
         private static final long BRIEF_RELOAD_MS = 60_000;
         private static final long BRIEF_CYCLE_MS = 9_000; // one line: fade in, hold, fade out
         private static final long BRIEF_FADE_MS = 1_200;
+        private static final long PHOTO_SLOT_MS = 20_000; // photo on screen, then clock, alternating
 
         private final Paint blobPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint clockPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint ampmPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint datePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint briefPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint photoPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+        private final Paint matPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint captionPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Path clip = new Path();
+        private final RectF dst = new RectF();
 
         private final SimpleDateFormat timeFmt = new SimpleDateFormat("h:mm", Locale.getDefault());
         private final SimpleDateFormat ampmFmt = new SimpleDateFormat("a", Locale.getDefault());
@@ -108,6 +118,10 @@ public class AmbientDream extends DreamService {
             datePaint.setColor(Color.argb(170, 255, 255, 255));
             briefPaint.setTypeface(face);
             briefPaint.setColor(Color.WHITE);
+            captionPaint.setTypeface(face);
+            captionPaint.setColor(Color.argb(205, 255, 255, 255));
+            captionPaint.setTextAlign(Paint.Align.CENTER);
+            matPaint.setColor(Color.argb(120, 0, 0, 0));
             setBackgroundColor(Color.BLACK);
         }
 
@@ -154,13 +168,15 @@ public class AmbientDream extends DreamService {
             }
         }
 
-        // ---- brief: short lines pushed to <app files dir>/brief.txt ----
+        // ---- brief lines: family notes, then anything pushed to brief.txt, then weather/news ----
 
         private void maybeReloadBrief(long now) {
             BriefFetcher.refreshIfStale(getContext());
-            if (now - briefLoadedAt < BRIEF_RELOAD_MS && !(brief.isEmpty() && now - briefLoadedAt > 15_000)) return;
+            TelegramSource.refreshIfStale(getContext());
+            if (now - briefLoadedAt < BRIEF_RELOAD_MS
+                    && !(brief.isEmpty() && now - briefLoadedAt > 15_000)) return;
             briefLoadedAt = now;
-            List<String> fresh = new ArrayList<>();
+            List<String> fresh = new ArrayList<>(TelegramSource.notes);
             File f = new File(getContext().getExternalFilesDir(null), "brief.txt");
             if (f.isFile() && f.length() < 16 * 1024) {
                 try (BufferedReader br = new BufferedReader(new FileReader(f))) {
@@ -170,7 +186,7 @@ public class AmbientDream extends DreamService {
                         if (!line.isEmpty()) fresh.add(line);
                     }
                 } catch (Exception ignored) {
-                    // unreadable file: just show no brief
+                    // unreadable file: just show no pushed lines
                 }
             }
             fresh.addAll(BriefFetcher.lines); // weather + headlines the TV fetched itself
@@ -204,6 +220,22 @@ public class AmbientDream extends DreamService {
             return 0f;                                         // fully black
         }
 
+        /**
+         * Which photo to show, or null for the clock view. A photo this TV first saw within the last
+         * photo_feature_minutes holds the screen; after that, photos and the clock alternate.
+         */
+        private TelegramSource.Shot pickShot(long now) {
+            List<TelegramSource.Shot> list = TelegramSource.shots;
+            if (list.isEmpty()) return null;
+            TelegramSource.Shot newest = list.get(0);
+            long featureMs = Math.max(0, getResources().getInteger(R.integer.photo_feature_minutes))
+                    * 60_000L;
+            if (now - newest.firstSeenAt < featureMs) return newest;
+            long slot = now / PHOTO_SLOT_MS;
+            if (slot % 2 == 0) return null;                    // clock's turn
+            return list.get((int) ((slot / 2) % list.size()));
+        }
+
         @Override
         protected void onDraw(Canvas canvas) {
             drawScene(canvas);
@@ -234,8 +266,68 @@ public class AmbientDream extends DreamService {
                 canvas.restore();
             }
 
-            // clock that wanders (burn-in protection)
             date.setTime(now);
+            TelegramSource.Shot shot = pickShot(now);
+            if (shot != null && !shot.bitmap.isRecycled()) {
+                drawPhoto(canvas, shot, w, h);
+                drawCornerClock(canvas, cal, w, h);
+            } else {
+                drawWanderingClock(canvas, cal, sec, now, w, h);
+            }
+        }
+
+        /** The photo, centred in a soft mat, with its caption underneath. */
+        private void drawPhoto(Canvas canvas, TelegramSource.Shot shot, int w, int h) {
+            float margin = w * 0.07f;
+            float captionH = h * 0.12f;
+            float availW = w - 2 * margin;
+            float availH = h - 2 * margin - captionH;
+            int bw = shot.bitmap.getWidth(), bh = shot.bitmap.getHeight();
+            if (bw <= 0 || bh <= 0) return;
+            float scale = Math.min(availW / bw, availH / bh);
+            float dw = bw * scale, dh = bh * scale;
+            float left = (w - dw) / 2f;
+            float top = margin + (availH - dh) / 2f;
+            dst.set(left, top, left + dw, top + dh);
+
+            float r = Math.min(w, h) * 0.022f;
+            float pad = Math.min(w, h) * 0.012f;
+            canvas.save();
+            clip.reset();
+            clip.addRoundRect(dst.left - pad, dst.top - pad, dst.right + pad, dst.bottom + pad,
+                    r + pad, r + pad, Path.Direction.CW);
+            canvas.drawPath(clip, matPaint);                   // dark mat so the blobs don't clash
+            canvas.restore();
+
+            canvas.save();
+            clip.reset();
+            clip.addRoundRect(dst, r, r, Path.Direction.CW);
+            canvas.clipPath(clip);
+            canvas.drawBitmap(shot.bitmap, null, dst, photoPaint);
+            canvas.restore();
+
+            if (!shot.caption.isEmpty()) {
+                captionPaint.setTextSize(h * 0.045f);
+                float maxW = w - 2 * margin;
+                float cw = captionPaint.measureText(shot.caption);
+                if (cw > maxW) captionPaint.setTextSize(captionPaint.getTextSize() * maxW / cw);
+                canvas.drawText(shot.caption, w / 2f, dst.bottom + h * 0.075f, captionPaint);
+            }
+        }
+
+        /** Small fixed clock, used while a photo has the screen. */
+        private void drawCornerClock(Canvas canvas, Calendar cal, int w, int h) {
+            clockPaint.setTextSize(h * 0.085f);
+            datePaint.setTextSize(h * 0.032f);
+            float x = w * 0.05f;
+            float y = h * 0.12f;
+            canvas.drawText(timeFmt.format(date) + " "
+                    + ampmFmt.format(date).toUpperCase(Locale.getDefault()), x, y, clockPaint);
+            canvas.drawText(dateFmt.format(date), x, y + h * 0.045f, datePaint);
+        }
+
+        /** The big clock that wanders around the screen, with one rotating brief line. */
+        private void drawWanderingClock(Canvas canvas, Calendar cal, float sec, long now, int w, int h) {
             String time = timeFmt.format(date);
             String ampm = ampmFmt.format(date).toUpperCase(Locale.getDefault());
             clockPaint.setTextSize(h * 0.24f);
@@ -256,28 +348,25 @@ public class AmbientDream extends DreamService {
             float dx = Math.min(x + h * 0.01f, w - marginX - datePaint.measureText(dateLine));
             canvas.drawText(dateLine, Math.max(marginX, dx), y + h * 0.075f, datePaint);
 
-            // rotating brief line, fading in and out
-            if (!brief.isEmpty()) {
-                long into = now - briefStart;
-                if (into >= BRIEF_CYCLE_MS) {
-                    briefStart = now;
-                    into = 0;
-                    briefIdx = (briefIdx + 1) % brief.size();
-                }
-                float a = 1f;
-                if (into < BRIEF_FADE_MS) a = into / (float) BRIEF_FADE_MS;
-                else if (into > BRIEF_CYCLE_MS - BRIEF_FADE_MS)
-                    a = (BRIEF_CYCLE_MS - into) / (float) BRIEF_FADE_MS;
-                briefPaint.setAlpha((int) (210 * Math.max(0f, Math.min(1f, a)) * (nightDim > 0.9f ? 1f : 0.8f)));
-                briefPaint.setTextSize(h * 0.052f);
-                String line = brief.get(briefIdx);
-                // shrink long lines to fit inside the screen width
-                float maxW = w - 2 * marginX;
-                float lw = briefPaint.measureText(line);
-                if (lw > maxW) briefPaint.setTextSize(briefPaint.getTextSize() * maxW / lw);
-                float bx = Math.min(x + h * 0.01f, w - marginX - briefPaint.measureText(line));
-                canvas.drawText(line, Math.max(marginX, bx), y + h * 0.16f, briefPaint);
+            if (brief.isEmpty()) return;
+            long into = now - briefStart;
+            if (into >= BRIEF_CYCLE_MS) {
+                briefStart = now;
+                into = 0;
+                briefIdx = (briefIdx + 1) % brief.size();
             }
+            float a = 1f;
+            if (into < BRIEF_FADE_MS) a = into / (float) BRIEF_FADE_MS;
+            else if (into > BRIEF_CYCLE_MS - BRIEF_FADE_MS)
+                a = (BRIEF_CYCLE_MS - into) / (float) BRIEF_FADE_MS;
+            briefPaint.setAlpha((int) (210 * Math.max(0f, Math.min(1f, a)) * (nightDim > 0.9f ? 1f : 0.8f)));
+            briefPaint.setTextSize(h * 0.052f);
+            String line = brief.get(briefIdx);
+            float maxW = w - 2 * marginX;
+            float lw = briefPaint.measureText(line);
+            if (lw > maxW) briefPaint.setTextSize(briefPaint.getTextSize() * maxW / lw);
+            float bx = Math.min(x + h * 0.01f, w - marginX - briefPaint.measureText(line));
+            canvas.drawText(line, Math.max(marginX, bx), y + h * 0.16f, briefPaint);
         }
     }
 }
