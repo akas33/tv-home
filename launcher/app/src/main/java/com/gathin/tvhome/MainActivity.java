@@ -520,18 +520,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         // Colours no longer change with focus: the highlight is translucent, so white text reads
         // on it as well as on the panel. Nothing here can leave a row unreadable.
-        // This TV reports "standby" for every port whether or not something is plugged in, so only
-        // definite states are shown.
-        if (state == TvInputManager.INPUT_STATE_CONNECTED) {
-            status.setText(R.string.connected);
-            dot.setVisibility(View.VISIBLE);
-        } else if (state == TvInputManager.INPUT_STATE_DISCONNECTED) {
-            status.setText(R.string.not_connected);
-            dot.setVisibility(View.GONE);
-        } else {
-            status.setVisibility(View.GONE);
-            dot.setVisibility(View.GONE);
-        }
+        // The name is what identifies an input at a glance, so the row shows that and nothing else.
+        // A green dot marks whichever input actually has something plugged in; no wording needed,
+        // and this TV reports "standby" for every idle port anyway, which was never worth printing.
+        status.setVisibility(View.GONE);
+        dot.setVisibility(state == TvInputManager.INPUT_STATE_CONNECTED ? View.VISIBLE : View.GONE);
         row.setOnClickListener(v -> {
             popup.dismiss();
             action.run();
