@@ -476,10 +476,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void addInputRow(LinearLayout rows, PopupWindow popup, int iconRes, String title, int state, Runnable action) {
         View row = getLayoutInflater().inflate(R.layout.item_input, rows, false);
-        ((ImageView) row.findViewById(R.id.icon)).setImageResource(iconRes);
-        ((TextView) row.findViewById(R.id.title)).setText(title);
+        ImageView icon = row.findViewById(R.id.icon);
+        icon.setImageResource(iconRes);
+        TextView titleView = row.findViewById(R.id.title);
+        titleView.setText(title);
         TextView status = row.findViewById(R.id.status);
         View dot = row.findViewById(R.id.dot);
+
+        // The focus highlight is near-white, so the text has to flip to dark on it. The colour
+        // state list handles that, but set it here too: a row nobody can read is worse than ugly.
+        row.setOnFocusChangeListener((v, focused) -> {
+            titleView.setTextColor(focused ? 0xFF111111 : 0xFFFFFFFF);
+            status.setTextColor(focused ? 0x99111111 : 0x73FFFFFF);
+            icon.setColorFilter(focused ? 0xFF111111 : 0xFFFFFFFF);
+        });
         // This TV reports "standby" for every port whether or not something is plugged in, so only
         // definite states are shown.
         if (state == TvInputManager.INPUT_STATE_CONNECTED) {

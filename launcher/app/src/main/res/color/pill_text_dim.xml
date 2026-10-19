@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dimmed companion to pill_text; see that file for why this lives in res/color. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:color="#99111111" />
+    <item android:color="#73FFFFFF" />
+</selector>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Colour state lists belong in res/color, not res/drawable: in drawable the focused state is not
+     applied to textColor, which left white text sitting on the white focus highlight. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:color="#FF111111" />
+    <item android:color="#FFFFFFFF" />
+</selector>
