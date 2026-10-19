@@ -12,7 +12,7 @@
     .\windows\tv.ps1 restore <list.txt>         undo it and bring the stock launcher back
     .\windows\tv.ps1 install                    build and install the launcher + screensaver
     .\windows\tv.ps1 screensaver [preview]      select the Ambient screensaver (preview starts it now)
-    .\windows\tv.ps1 shot                       save a screenshot of the TV to shot.png
+    .\windows\tv.ps1 shot [name]                screenshot; with a name it goes to docs\<name>.png
     .\windows\tv.ps1 lockdown                   turn TV debugging back off when you are finished
     .\windows\tv.ps1 chatid <bot token>         list the Telegram chat IDs allowed on the TV board
     .\windows\tv.ps1 brief "line 1" "line 2"    optional: send your own lines to the screensaver
@@ -345,14 +345,21 @@ switch ($Cmd) {
         Write-Host "Send the above to Claude."
     }
     "shot" {
-        # Grab what is on the TV right now, so Claude can look at it instead of guessing.
+        # Grab what is on the TV right now. With a name, it is filed in docs\ ready for GitHub:
+        #   .\windows\tv.ps1 shot home     ->  docs\home.png
         Need-Venv
-        $out = Join-Path $Repo "shot.png"
+        if ($Rest -and $Rest[0]) {
+            $dir = Join-Path $Repo "docs"
+            New-Item -ItemType Directory -Force -Path $dir | Out-Null
+            $out = Join-Path $dir ("{0}.png" -f ($Rest[0] -replace '[^A-Za-z0-9_-]', ''))
+        } else {
+            $out = Join-Path $Repo "shot.png"
+        }
         & $Py -I tools\tv.py "screencap -p /sdcard/tvshot.png" | Out-Null
         & $Py -I tools\tv.py --pull /sdcard/tvshot.png "$out"
         & $Py -I tools\tv.py "rm -f /sdcard/tvshot.png" | Out-Null
         if (Test-Path $out) {
-            Write-Host "Saved $out ($([math]::Round((Get-Item $out).Length/1KB)) KB). Tell Claude it is ready."
+            Write-Host ("Saved {0} ({1} KB)" -f $out, [math]::Round((Get-Item $out).Length/1KB))
         } else {
             Write-Host "Screenshot failed - is the TV awake and USB debugging on?"
         }
