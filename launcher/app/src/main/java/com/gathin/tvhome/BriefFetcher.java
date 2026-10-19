@@ -1,6 +1,7 @@
 package com.gathin.tvhome;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.util.Log;
 import android.util.Xml;
 
@@ -17,19 +18,50 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Fetches the screensaver's brief by itself, so no computer has to stay on: today's weather from
- * Open-Meteo (free, no account or key) and a few headlines from an RSS feed. Runs only while the
- * screensaver is showing, at most once every 30 minutes, on a short-lived background thread.
- * Both sources are optional and configured in res/values/config.xml; leave them blank to skip.
+ * What the TV fetches for itself while the screensaver is on: today's weather from Open-Meteo
+ * (free, no account) and headlines from an RSS feed, with a picture where the feed offers one.
+ *
+ * Both are optional and configured in res/values/config.xml; leave a value blank to skip it.
+ * Runs at most once every 30 minutes, on a short-lived background thread, and nothing at all
+ * while the screensaver is not showing.
  */
 final class BriefFetcher {
     private static final String TAG = "TvBrief";
     private static final long STALE_MS = 30L * 60 * 1000;
     private static final long RETRY_MS = 5L * 60 * 1000;
-    private static final int MAX_HEADLINES = 5;
+    private static final int MAX_HEADLINES = 6;
+    private static final int MAX_IMAGES = 3;        // only the first few carry a picture
 
-    /** Latest fetched lines (replaced as a whole, never mutated). */
-    static volatile List<String> lines = Collections.emptyList();
+    /** Today's weather. Null until the first successful fetch. */
+    static final class Weather {
+        final String place, condition;
+        final long temp, high, low;
+        final int rainChance;                        // -1 when the forecast omits it
+
+        Weather(String place, String condition, long temp, long high, long low, int rainChance) {
+            this.place = place;
+            this.condition = condition;
+            this.temp = temp;
+            this.high = high;
+            this.low = low;
+            this.rainChance = rainChance;
+        }
+    }
+
+    /** One headline, with its picture once it has been downloaded. */
+    static final class Headline {
+        final String title;
+        final String imageUrl;                       // may be null
+        volatile Bitmap image;                       // filled in later, may stay null
+
+        Headline(String title, String imageUrl) {
+            this.title = title;
+            this.imageUrl = imageUrl;
+        }
+    }
+
+    static volatile Weather weather;
+    static volatile List<Headline> headlines = Collections.emptyList();
 
     private static volatile long lastAttempt = 0;
     private static volatile boolean busy = false;
@@ -43,61 +75,39 @@ final class BriefFetcher {
         lastAttempt = now;
         final Context app = context.getApplicationContext();
         new Thread(() -> {
+            boolean any = false;
             try {
-                List<String> out = new ArrayList<>();
-                try { messages(app, out); } catch (Exception e) { Log.w(TAG, "notes failed", e); }
-                try { weather(app, out); } catch (Exception e) { Log.w(TAG, "weather failed", e); }
-                try { news(app, out); } catch (Exception e) { Log.w(TAG, "news failed", e); }
-                Log.i(TAG, "brief refreshed, " + out.size() + " line(s)");
-                if (!out.isEmpty()) {
-                    lines = Collections.unmodifiableList(out);
-                } else {
-                    lastAttempt = System.currentTimeMillis() - STALE_MS + RETRY_MS; // offline: retry soon
+                try {
+                    weather = fetchWeather(app);
+                    any |= weather != null;
+                } catch (Exception e) {
+                    Log.w(TAG, "weather failed", e);
                 }
+                try {
+                    List<Headline> fresh = fetchHeadlines(app);
+                    if (!fresh.isEmpty()) {
+                        headlines = Collections.unmodifiableList(fresh);
+                        any = true;
+                        fetchImages(app, fresh);
+                    }
+                } catch (Exception e) {
+                    Log.w(TAG, "headlines failed", e);
+                }
+                Log.i(TAG, "brief refreshed: weather=" + (weather != null)
+                        + " headlines=" + headlines.size());
+                if (!any) lastAttempt = System.currentTimeMillis() - STALE_MS + RETRY_MS;
             } finally {
                 busy = false;
             }
         }, "brief-fetch").start();
     }
 
-    // ---- family message board (ntfy) ----
-
-    /**
-     * Notes sent from any phone through ntfy (free, no account): install the ntfy app or open the
-     * topic page in a browser, and anything posted to the topic shows up here for the next 12 hours.
-     */
-    private static void messages(Context c, List<String> out) throws Exception {
-        String topic = c.getString(R.string.message_topic).trim();
-        if (topic.isEmpty()) return;
-        String server = c.getString(R.string.message_server).trim();
-        if (server.isEmpty()) server = "https://ntfy.sh";
-        String body = get(server.replaceAll("/+$", "") + "/" + topic + "/json?poll=1&since=12h");
-        List<String> found = new ArrayList<>();
-        for (String row : body.split("\n")) {
-            row = row.trim();
-            if (row.isEmpty()) continue;
-            try {
-                JSONObject m = new JSONObject(row);
-                if (!"message".equals(m.optString("event"))) continue;
-                String text = m.optString("message").trim();
-                if (text.isEmpty()) continue;
-                if (text.length() > 160) text = text.substring(0, 157) + "...";
-                found.add("Note: " + text);
-            } catch (Exception ignored) {
-                // skip a malformed row
-            }
-        }
-        // newest first, at most 5
-        for (int i = found.size() - 1, n = 0; i >= 0 && n < 5; i--, n++) out.add(found.get(i));
-    }
-
     // ---- weather ----
 
-    private static void weather(Context c, List<String> out) throws Exception {
+    private static Weather fetchWeather(Context c) throws Exception {
         String lat = c.getString(R.string.weather_lat).trim();
         String lon = c.getString(R.string.weather_lon).trim();
-        if (lat.isEmpty() || lon.isEmpty()) return;
-        String label = c.getString(R.string.weather_label).trim();
+        if (lat.isEmpty() || lon.isEmpty()) return null;
         String url = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon
                 + "&current=temperature_2m,weather_code"
                 + "&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max"
@@ -105,16 +115,14 @@ final class BriefFetcher {
         JSONObject j = new JSONObject(get(url));
         JSONObject cur = j.getJSONObject("current");
         JSONObject day = j.getJSONObject("daily");
-        long now = Math.round(cur.getDouble("temperature_2m"));
-        String sky = describe(cur.getInt("weather_code"));
-        long hi = Math.round(first(day, "temperature_2m_max"));
-        long lo = Math.round(first(day, "temperature_2m_min"));
-        String head = (label.isEmpty() ? "" : label + "  ·  ") + now + "° now, " + sky;
-        out.add(head);
-        String line = "Today " + lo + "°–" + hi + "°";
         double rain = first(day, "precipitation_probability_max");
-        if (!Double.isNaN(rain)) line += "  ·  " + Math.round(rain) + "% chance of rain";
-        out.add(line);
+        return new Weather(
+                c.getString(R.string.weather_label).trim(),
+                describe(cur.getInt("weather_code")),
+                Math.round(cur.getDouble("temperature_2m")),
+                Math.round(first(day, "temperature_2m_max")),
+                Math.round(first(day, "temperature_2m_min")),
+                Double.isNaN(rain) ? -1 : (int) Math.round(rain));
     }
 
     private static double first(JSONObject o, String key) {
@@ -127,47 +135,97 @@ final class BriefFetcher {
     }
 
     private static String describe(int code) {
-        if (code == 0) return "clear";
-        if (code <= 3) return "partly cloudy";
-        if (code == 45 || code == 48) return "foggy";
-        if (code >= 51 && code <= 57) return "drizzle";
-        if (code >= 61 && code <= 67) return "rain";
-        if (code >= 71 && code <= 77) return "snow";
-        if (code >= 80 && code <= 82) return "showers";
-        if (code >= 95) return "thunderstorms";
-        return "cloudy";
+        if (code == 0) return "Clear";
+        if (code <= 3) return "Partly cloudy";
+        if (code == 45 || code == 48) return "Fog";
+        if (code >= 51 && code <= 57) return "Drizzle";
+        if (code >= 61 && code <= 67) return "Rain";
+        if (code >= 71 && code <= 77) return "Snow";
+        if (code >= 80 && code <= 82) return "Showers";
+        if (code >= 95) return "Thunderstorms";
+        return "Cloudy";
     }
 
     // ---- headlines ----
 
-    private static void news(Context c, List<String> out) throws Exception {
+    private static List<Headline> fetchHeadlines(Context c) throws Exception {
+        List<Headline> out = new ArrayList<>();
         String feed = c.getString(R.string.news_feed_url).trim();
-        if (feed.isEmpty()) return;
+        if (feed.isEmpty()) return out;
+
         HttpURLConnection conn = open(feed);
         try (InputStream in = conn.getInputStream()) {
             XmlPullParser p = Xml.newPullParser();
             p.setInput(in, null);
             boolean inItem = false;
-            int added = 0;
-            for (int ev = p.getEventType(); ev != XmlPullParser.END_DOCUMENT && added < MAX_HEADLINES;
+            String title = null, image = null, description = null;
+            for (int ev = p.getEventType();
+                 ev != XmlPullParser.END_DOCUMENT && out.size() < MAX_HEADLINES;
                  ev = p.next()) {
+                String name = p.getName();
+                if (name == null) continue;
+                String tag = local(name);
                 if (ev == XmlPullParser.START_TAG) {
-                    String n = p.getName();
-                    if ("item".equals(n) || "entry".equals(n)) inItem = true;
-                    else if (inItem && "title".equals(n)) {
-                        String t = p.nextText().trim();
-                        if (!t.isEmpty()) {
-                            out.add(t);
-                            added++;
-                        }
+                    if ("item".equals(tag) || "entry".equals(tag)) {
+                        inItem = true;
+                        title = null; image = null; description = null;
+                    } else if (inItem && "title".equals(tag)) {
+                        title = p.nextText().trim();
+                    } else if (inItem && "description".equals(tag)) {
+                        description = p.nextText();
+                    } else if (inItem && image == null
+                            && ("content".equals(tag) || "thumbnail".equals(tag)
+                                || "enclosure".equals(tag) || "image".equals(tag))) {
+                        String url = p.getAttributeValue(null, "url");
+                        if (url != null && looksLikeImage(url)) image = url;
                     }
                 } else if (ev == XmlPullParser.END_TAG
-                        && ("item".equals(p.getName()) || "entry".equals(p.getName()))) {
+                        && ("item".equals(tag) || "entry".equals(tag))) {
                     inItem = false;
+                    if (title != null && !title.isEmpty()) {
+                        if (image == null) image = imageFromHtml(description);
+                        out.add(new Headline(title, image));
+                    }
                 }
             }
         } finally {
             conn.disconnect();
+        }
+        return out;
+    }
+
+    /** Strips any namespace prefix, so media:content and content both read as "content". */
+    private static String local(String name) {
+        int colon = name.indexOf(':');
+        return colon < 0 ? name : name.substring(colon + 1);
+    }
+
+    private static boolean looksLikeImage(String url) {
+        String u = url.toLowerCase();
+        return u.startsWith("http") && !u.endsWith(".mp4") && !u.endsWith(".mp3");
+    }
+
+    /** Some feeds only hint at a picture inside the description's HTML. */
+    private static String imageFromHtml(String html) {
+        if (html == null) return null;
+        java.util.regex.Matcher m = java.util.regex.Pattern
+                .compile("(?i)<img[^>]+src=[\"']([^\"']+)[\"']").matcher(html);
+        return m.find() && looksLikeImage(m.group(1)) ? m.group(1) : null;
+    }
+
+    private static void fetchImages(Context c, List<Headline> items) {
+        int[] screen = Photos.screen(c);
+        int maxW = Math.max(320, screen[0] / 4);     // a thumbnail, not a wallpaper
+        int done = 0;
+        for (Headline h : items) {
+            if (done >= MAX_IMAGES) break;
+            if (h.imageUrl == null) continue;
+            try {
+                h.image = Photos.decode(getBytes(h.imageUrl), maxW, maxW);
+                if (h.image != null) done++;
+            } catch (Exception e) {
+                Log.w(TAG, "headline image failed", e);
+            }
         }
     }
 
@@ -176,22 +234,28 @@ final class BriefFetcher {
     private static HttpURLConnection open(String url) throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
         conn.setConnectTimeout(8000);
-        conn.setReadTimeout(8000);
+        conn.setReadTimeout(15000);
+        conn.setInstanceFollowRedirects(true);
         conn.setRequestProperty("User-Agent", "tv-vibehack-screensaver");
-        if (conn.getResponseCode() != 200) throw new java.io.IOException("HTTP " + conn.getResponseCode());
+        int code = conn.getResponseCode();
+        if (code != 200) throw new java.io.IOException("HTTP " + code + " for " + url);
         return conn;
     }
 
-    private static String get(String url) throws Exception {
+    private static byte[] getBytes(String url) throws Exception {
         HttpURLConnection conn = open(url);
         try (InputStream in = conn.getInputStream()) {
             ByteArrayOutputStream buf = new ByteArrayOutputStream();
-            byte[] chunk = new byte[4096];
+            byte[] chunk = new byte[16 * 1024];
             int n;
-            while ((n = in.read(chunk)) > 0 && buf.size() < 256 * 1024) buf.write(chunk, 0, n);
-            return buf.toString("UTF-8");
+            while ((n = in.read(chunk)) > 0 && buf.size() < 2 * 1024 * 1024) buf.write(chunk, 0, n);
+            return buf.toByteArray();
         } finally {
             conn.disconnect();
         }
+    }
+
+    private static String get(String url) throws Exception {
+        return new String(getBytes(url), "UTF-8");
     }
 }

@@ -2,21 +2,20 @@ package com.gathin.tvhome;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.Typeface;
+import android.os.Build;
 import android.service.dreams.DreamService;
 import android.view.View;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -25,13 +24,15 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Ambient screensaver: slow drifting colour on pure black, a large thin clock that wanders around
- * the screen (so no pixel stays lit, which protects the panel), notes and photos from the family
- * board, and today's weather and headlines.
+ * The idle screen: a slow sky over the city rather than a dashboard. A deep vertical gradient with
+ * two soft glows drifting through it, shifting through dawn, day, dusk and night. The time is the
+ * one loud element; the weather sits opposite it and never moves away; a headline or a family note
+ * runs quietly along the bottom, with the feed's picture when there is one.
  *
- * A photo that this TV has just received takes over the screen for a few minutes
- * (photo_feature_minutes), which is the "look at this now" case; after that photos and the clock
- * alternate. Light on purpose: cached gradients, ~20 fps, no background services.
+ * A photo someone has just sent takes the whole screen for a few minutes, because that is the
+ * point of sending it.
+ *
+ * Built for a 1 GB TV: cached shaders, ~20 fps, no blur, no video, no background work.
  */
 public class AmbientDream extends DreamService {
 
@@ -60,39 +61,55 @@ public class AmbientDream extends DreamService {
 
     static final class AmbientView extends View {
         private static final long FRAME_MS = 50;          // ~20 fps
-        private static final long BRIEF_RELOAD_MS = 60_000;
-        private static final long BRIEF_CYCLE_MS = 9_000; // one line: fade in, hold, fade out
-        private static final long BRIEF_FADE_MS = 1_200;
-        private static final long PHOTO_SLOT_MS = 20_000; // photo on screen, then clock, alternating
+        private static final long BAND_CYCLE_MS = 13_000; // one headline or note
+        private static final long BAND_FADE_MS = 1_400;
+        private static final long CONTENT_POLL_MS = 5_000;
+        private static final long PHOTO_SLOT_MS = 20_000;
         private static final String PREFS = "ambient";
         private static final String KEY_BYPASS = "dim_bypass_until";
 
-        private final Paint blobPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint clockPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint ampmPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint datePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint briefPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint photoPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-        private final Paint matPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint captionPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        /** top, bottom, glow A, glow B - dawn, morning, day, dusk, night. */
+        private static final int[][] SKY = {
+                {0xFF10163A, 0xFF2E1C3E, 0xFFE8734A, 0xFF7B4BA8},
+                {0xFF0E2A4A, 0xFF17425F, 0xFFF2A65A, 0xFF4FB8D9},
+                {0xFF0B3B5C, 0xFF115A7F, 0xFF3FC9E0, 0xFF8FD9C0},
+                {0xFF2A1238, 0xFF4A1B3D, 0xFFF0663C, 0xFF9B4BC8},
+                {0xFF05080F, 0xFF0C1226, 0xFF24407A, 0xFF3A2458},
+        };
+
+        private final Paint sky = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint vignette = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint time = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint meridiem = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint date = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint temp = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint sky2 = new Paint(Paint.ANTI_ALIAS_FLAG);   // condition + range
+        private final Paint band = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint photo = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+        private final Paint mat = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Path clip = new Path();
         private final RectF dst = new RectF();
 
-        private final SimpleDateFormat timeFmt = new SimpleDateFormat("h:mm", Locale.getDefault());
-        private final SimpleDateFormat ampmFmt = new SimpleDateFormat("a", Locale.getDefault());
-        private final DateFormat dateFmt = new SimpleDateFormat("EEEE, d MMMM", Locale.getDefault());
-        private final Date date = new Date();
+        private final SimpleDateFormat hhmm = new SimpleDateFormat("h:mm", Locale.getDefault());
+        private final SimpleDateFormat ampm = new SimpleDateFormat("a", Locale.getDefault());
+        private final SimpleDateFormat longDate =
+                new SimpleDateFormat("EEEE, d MMMM", Locale.getDefault());
+        private final Date clock = new Date();
 
-        private final Shader[] shaders = new Shader[3];
-        private final float[] phase = {0f, 2.1f, 4.2f};
-        private final float[] speed = {0.031f, 0.023f, 0.041f};
-        private int paletteBucket = -1;
-        private float nightDim = 1f;
+        private Shader skyShader, glowA, glowB, vignetteShader;
+        private int skyBucket = -1, skyW, skyH;
 
-        private final List<String> brief = new ArrayList<>();
-        private int briefIdx = 0;
-        private long briefLoadedAt = 0;
-        private long briefStart = 0;
+        /** One thing in the bottom band: a family note, or a headline with its picture. */
+        private static final class BandItem {
+            final String text;
+            final Bitmap image;
+            BandItem(String text, Bitmap image) { this.text = text; this.image = image; }
+        }
+
+        private final List<BandItem> items = new ArrayList<>();
+        private int bandIdx = 0;
+        private long bandStart = 0, lastPoll = 0;
 
         private float lastDim = 1f;
         private long t0;
@@ -101,46 +118,59 @@ public class AmbientDream extends DreamService {
             @Override public void run() {
                 if (!running) return;
                 invalidate();
-                postDelayed(this, lastDim <= 0f ? 1000 : FRAME_MS); // fully dimmed: barely wake up
+                postDelayed(this, lastDim <= 0f ? 1000 : FRAME_MS);
             }
         };
 
         AmbientView(Context c) {
             super(c);
-            Typeface face;
+            Typeface base;
             try {
-                face = getResources().getFont(R.font.outfit);
+                base = getResources().getFont(R.font.outfit);
             } catch (Exception e) {
-                face = Typeface.create("sans-serif-thin", Typeface.NORMAL);
+                base = Typeface.create("sans-serif-light", Typeface.NORMAL);
             }
-            clockPaint.setTypeface(face);
-            clockPaint.setColor(Color.argb(235, 255, 255, 255));
-            ampmPaint.setTypeface(face);
-            ampmPaint.setColor(Color.argb(150, 255, 255, 255));
-            datePaint.setTypeface(face);
-            datePaint.setColor(Color.argb(170, 255, 255, 255));
-            briefPaint.setTypeface(face);
-            briefPaint.setColor(Color.WHITE);
-            captionPaint.setTypeface(face);
-            captionPaint.setColor(Color.argb(205, 255, 255, 255));
-            captionPaint.setTextAlign(Paint.Align.CENTER);
-            matPaint.setColor(Color.argb(120, 0, 0, 0));
+            time.setTypeface(weight(base, 200));
+            time.setColor(0xFFF2F6FA);
+            meridiem.setTypeface(weight(base, 400));
+            meridiem.setColor(0x8CFFFFFF);
+            date.setTypeface(weight(base, 300));
+            date.setColor(0xB8FFFFFF);
+            temp.setTypeface(weight(base, 300));
+            temp.setColor(0xFFF2F6FA);
+            temp.setTextAlign(Paint.Align.RIGHT);
+            sky2.setTypeface(weight(base, 400));
+            sky2.setColor(0xB8FFFFFF);
+            sky2.setTextAlign(Paint.Align.RIGHT);
+            band.setTypeface(weight(base, 500));
+            band.setColor(0xFFFFFFFF);
+            mat.setColor(0x4D000000);
             setBackgroundColor(Color.BLACK);
+        }
+
+        private Typeface weight(Typeface base, int w) {
+            if (Build.VERSION.SDK_INT >= 28) {
+                try {
+                    return Typeface.create(base, w, false);
+                } catch (Exception ignored) {
+                    // fall through to the face as loaded
+                }
+            }
+            return base;
         }
 
         void start() {
             running = true;
             t0 = System.currentTimeMillis();
-            briefStart = t0;
-            briefLoadedAt = 0;
+            bandStart = t0;
+            lastPoll = 0;
             removeCallbacks(tick);
             post(tick);
         }
 
         /**
-         * Leaving the screensaver while it had dimmed means somebody is still up, so dimming is
-         * suspended for dim_bypass_minutes: the screen stays bright for the rest of the evening
-         * instead of going black again every few minutes.
+         * Leaving while the screen had dimmed means somebody is still up, so dimming is suspended
+         * for dim_bypass_minutes rather than going black again every few minutes.
          */
         void stop() {
             running = false;
@@ -149,23 +179,10 @@ public class AmbientDream extends DreamService {
             int minutes = getResources().getInteger(R.integer.dim_bypass_minutes);
             if (minutes <= 0) return;
             try {
-                prefs().edit()
-                        .putLong(KEY_BYPASS, System.currentTimeMillis() + minutes * 60_000L)
-                        .apply();
+                prefs().edit().putLong(KEY_BYPASS,
+                        System.currentTimeMillis() + minutes * 60_000L).apply();
             } catch (Exception ignored) {
-                // no preferences available: dimming simply stays on
-            }
-        }
-
-        private SharedPreferences prefs() {
-            return getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        }
-
-        private boolean dimSuspended() {
-            try {
-                return System.currentTimeMillis() < prefs().getLong(KEY_BYPASS, 0L);
-            } catch (Exception e) {
-                return false;
+                // no preferences: dimming simply stays on
             }
         }
 
@@ -175,54 +192,77 @@ public class AmbientDream extends DreamService {
             super.onDetachedFromWindow();
         }
 
-        // ---- palette: warm in the morning, cool by day, rose at dusk, dim indigo at night ----
-
-        private void ensurePalette(Calendar cal, int w, int h) {
-            int hour = cal.get(Calendar.HOUR_OF_DAY);
-            int bucket = hour < 5 ? 3 : hour < 11 ? 0 : hour < 17 ? 1 : hour < 21 ? 2 : 3;
-            if (bucket == paletteBucket && shaders[0] != null) return;
-            paletteBucket = bucket;
-            int[][] pal = {
-                    {0xFFE8A04A, 0xFFE0705A, 0xFF8A5AD0},  // morning: amber, coral, violet
-                    {0xFF2FA8C7, 0xFF3F6FE0, 0xFF37C9A5},  // day: teal, blue, mint
-                    {0xFFE0507F, 0xFFF08A3C, 0xFF6A4BC8},  // evening: rose, orange, purple
-                    {0xFF2A2E8F, 0xFF4A2A82, 0xFF1D5A8A}   // night: deep indigo
-            };
-            nightDim = bucket == 3 ? 0.55f : 1f;
-            float r = Math.max(w, h) * 0.46f;
-            for (int i = 0; i < 3; i++) {
-                int c = pal[bucket][i];
-                int centre = Color.argb((int) (150 * nightDim), Color.red(c), Color.green(c), Color.blue(c));
-                int edge = Color.argb(0, Color.red(c), Color.green(c), Color.blue(c));
-                shaders[i] = new RadialGradient(0, 0, r, centre, edge, Shader.TileMode.CLAMP);
-            }
+        private SharedPreferences prefs() {
+            return getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         }
 
-        // ---- brief lines: family notes, then anything pushed to brief.txt, then weather/news ----
+        // ---- sky ----
 
-        private void maybeReloadBrief(long now) {
+        private int bucketFor(int hour) {
+            if (hour < 5) return 4;
+            if (hour < 8) return 0;
+            if (hour < 12) return 1;
+            if (hour < 17) return 2;
+            if (hour < 20) return 3;
+            return 4;
+        }
+
+        private void ensureSky(int bucket, int w, int h) {
+            if (bucket == skyBucket && w == skyW && h == skyH && skyShader != null) return;
+            skyBucket = bucket;
+            skyW = w;
+            skyH = h;
+            int[] p = SKY[bucket];
+            skyShader = new LinearGradient(0, 0, 0, h, p[0], p[1], Shader.TileMode.CLAMP);
+            // the glows carry the colour; generous radius so the falloff stays soft on a big panel
+            glowA = new RadialGradient(0, 0, Math.max(w, h) * 0.55f,
+                    withAlpha(p[2], 0x7A), withAlpha(p[2], 0), Shader.TileMode.CLAMP);
+            glowB = new RadialGradient(0, 0, Math.max(w, h) * 0.50f,
+                    withAlpha(p[3], 0x66), withAlpha(p[3], 0), Shader.TileMode.CLAMP);
+            vignetteShader = new RadialGradient(w * 0.5f, h * 0.45f, Math.max(w, h) * 0.75f,
+                    0x00000000, 0x80000000, Shader.TileMode.CLAMP);
+        }
+
+        private static int withAlpha(int color, int alpha) {
+            return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color));
+        }
+
+        /** 1 = full brightness, 0 = black. Bedtime window comes from config.xml (dim_*). */
+        private float dimFactor(Calendar cal) {
+            try {
+                if (System.currentTimeMillis() < prefs().getLong(KEY_BYPASS, 0L)) return 1f;
+            } catch (Exception ignored) {
+                // no preferences: carry on and dim normally
+            }
+            int startH = getResources().getInteger(R.integer.dim_start_hour);
+            int endH = getResources().getInteger(R.integer.dim_end_hour);
+            float ramp = Math.max(1, getResources().getInteger(R.integer.dim_ramp_minutes));
+            if (startH < 0 || startH > 23 || endH < 0 || endH > 23) return 1f;
+            float m = cal.get(Calendar.HOUR_OF_DAY) * 60f + cal.get(Calendar.MINUTE)
+                    + cal.get(Calendar.SECOND) / 60f;
+            float windowLen = ((endH - startH) * 60f + 1440f) % 1440f;
+            if (windowLen == 0f) return 1f;
+            float elapsed = (m - startH * 60f + 1440f) % 1440f;
+            if (elapsed >= windowLen) return 1f;
+            if (elapsed < ramp) return 1f - elapsed / ramp;
+            return 0f;
+        }
+
+        // ---- content ----
+
+        private void pollContent(long now) {
             BriefFetcher.refreshIfStale(getContext());
             BoardService.ensureRunning(getContext());
-            if (now - briefLoadedAt < BRIEF_RELOAD_MS
-                    && !(brief.isEmpty() && now - briefLoadedAt > 15_000)) return;
-            briefLoadedAt = now;
-            List<String> fresh = new ArrayList<>(Board.lines());
-            File f = new File(getContext().getExternalFilesDir(null), "brief.txt");
-            if (f.isFile() && f.length() < 16 * 1024) {
-                try (BufferedReader br = new BufferedReader(new FileReader(f))) {
-                    String line;
-                    while ((line = br.readLine()) != null && fresh.size() < 12) {
-                        line = line.trim();
-                        if (!line.isEmpty()) fresh.add(line);
-                    }
-                } catch (Exception ignored) {
-                    // unreadable file: just show no pushed lines
-                }
+            if (now - lastPoll < CONTENT_POLL_MS) return;
+            lastPoll = now;
+            List<BandItem> fresh = new ArrayList<>();
+            for (String note : Board.lines()) fresh.add(new BandItem(note, null));
+            for (BriefFetcher.Headline h : BriefFetcher.headlines) {
+                fresh.add(new BandItem(h.title, h.image));
             }
-            fresh.addAll(BriefFetcher.lines); // weather + headlines the TV fetched itself
-            brief.clear();
-            brief.addAll(fresh);
-            if (briefIdx >= brief.size()) briefIdx = 0;
+            items.clear();
+            items.addAll(fresh);
+            if (bandIdx >= items.size()) bandIdx = 0;
         }
 
         private String greeting(int hour) {
@@ -233,81 +273,189 @@ public class AmbientDream extends DreamService {
             return getContext().getString(R.string.good_night);
         }
 
-        /** 1 = full brightness, 0 = black. Bedtime window comes from config.xml (dim_*). */
-        private float dimFactor(Calendar cal) {
-            if (dimSuspended()) return 1f;          // you pressed a button: stay bright
-            int startH = getResources().getInteger(R.integer.dim_start_hour);
-            int endH = getResources().getInteger(R.integer.dim_end_hour);
-            float ramp = Math.max(1, getResources().getInteger(R.integer.dim_ramp_minutes));
-            if (startH < 0 || startH > 23 || endH < 0 || endH > 23) return 1f;
-            float m = cal.get(Calendar.HOUR_OF_DAY) * 60f + cal.get(Calendar.MINUTE)
-                    + cal.get(Calendar.SECOND) / 60f;
-            float start = startH * 60f;
-            float windowLen = ((endH - startH) * 60f + 1440f) % 1440f;
-            if (windowLen == 0f) return 1f;
-            float elapsed = (m - start + 1440f) % 1440f;
-            if (elapsed >= windowLen) return 1f;               // outside bedtime window
-            if (elapsed < ramp) return 1f - elapsed / ramp;    // fading out
-            return 0f;                                         // fully black
-        }
-
-        /**
-         * Which photo to show, or null for the clock view. A photo this TV first saw within the last
-         * photo_feature_minutes holds the screen; after that, photos and the clock alternate.
-         */
-        private Board.Item pickShot(long now) {
+        private Board.Item pickPhoto(long now) {
             List<Board.Item> list = Board.photos();
             if (list.isEmpty()) return null;
             Board.Item newest = list.get(0);
-            long featureMs = Math.max(0, getResources().getInteger(R.integer.photo_feature_minutes))
-                    * 60_000L;
+            long featureMs = Math.max(0,
+                    getResources().getInteger(R.integer.photo_feature_minutes)) * 60_000L;
             if (now - newest.receivedAt < featureMs) return newest;
             long slot = now / PHOTO_SLOT_MS;
-            if (slot % 2 == 0) return null;                    // clock's turn
+            if (slot % 2 == 0) return null;
             return list.get((int) ((slot / 2) % list.size()));
         }
 
+        // ---- drawing ----
+
         @Override
         protected void onDraw(Canvas canvas) {
-            drawScene(canvas);
-            if (lastDim < 1f) canvas.drawColor(Color.argb((int) (255 * (1f - lastDim)), 0, 0, 0));
-        }
-
-        private void drawScene(Canvas canvas) {
             int w = getWidth(), h = getHeight();
             if (w == 0 || h == 0) return;
             long now = System.currentTimeMillis();
-            float sec = (now - t0) / 1000f;
             Calendar cal = Calendar.getInstance();
             lastDim = dimFactor(cal);
-            if (lastDim <= 0f) return;                         // black; onDraw paints it
-            ensurePalette(cal, w, h);
-            maybeReloadBrief(now);
-
-            canvas.drawColor(Color.BLACK);
-
-            // drifting colour blobs
-            for (int i = 0; i < 3; i++) {
-                float cx = w * (0.5f + 0.38f * (float) Math.sin(sec * speed[i] + phase[i]));
-                float cy = h * (0.5f + 0.34f * (float) Math.cos(sec * speed[i] * 0.8f + phase[i] * 1.3f));
-                blobPaint.setShader(shaders[i]);
-                canvas.save();
-                canvas.translate(cx, cy);
-                canvas.drawRect(-w, -h, w, h, blobPaint);
-                canvas.restore();
+            if (lastDim <= 0f) {
+                canvas.drawColor(Color.BLACK);
+                return;
             }
+            float sec = (now - t0) / 1000f;
+            clock.setTime(now);
+            ensureSky(bucketFor(cal.get(Calendar.HOUR_OF_DAY)), w, h);
+            pollContent(now);
 
-            date.setTime(now);
-            Board.Item shot = pickShot(now);
+            drawSky(canvas, sec, w, h);
+
+            // the whole composition breathes a little, which keeps a static panel safe without
+            // scattering the elements around the screen
+            canvas.save();
+            canvas.translate(w * 0.010f * (float) Math.sin(sec * 0.013),
+                             h * 0.012f * (float) Math.cos(sec * 0.011));
+
+            Board.Item shot = pickPhoto(now);
             if (shot != null && shot.isPhoto()) {
                 drawPhoto(canvas, shot, w, h);
-                drawCornerClock(canvas, cal, w, h);
+                drawCornerClock(canvas, w, h);
             } else {
-                drawWanderingClock(canvas, cal, sec, now, w, h);
+                drawClock(canvas, cal, w, h);
+                drawWeather(canvas, w, h);
+                drawBand(canvas, now, w, h);
+            }
+            canvas.restore();
+
+            if (lastDim < 1f) {
+                canvas.drawColor(Color.argb((int) (255 * (1f - lastDim)), 0, 0, 0));
             }
         }
 
-        /** The photo, centred in a soft mat, with its caption underneath. */
+        private void drawSky(Canvas canvas, float sec, int w, int h) {
+            sky.setShader(skyShader);
+            canvas.drawRect(0, 0, w, h, sky);
+
+            glow.setShader(glowA);
+            canvas.save();
+            canvas.translate(w * (0.22f + 0.16f * (float) Math.sin(sec * 0.021)),
+                             h * (0.78f + 0.12f * (float) Math.cos(sec * 0.017)));
+            canvas.drawRect(-w, -h, w, h, glow);
+            canvas.restore();
+
+            glow.setShader(glowB);
+            canvas.save();
+            canvas.translate(w * (0.80f + 0.14f * (float) Math.cos(sec * 0.015)),
+                             h * (0.24f + 0.14f * (float) Math.sin(sec * 0.019)));
+            canvas.drawRect(-w, -h, w, h, glow);
+            canvas.restore();
+
+            vignette.setShader(vignetteShader);
+            canvas.drawRect(0, 0, w, h, vignette);
+        }
+
+        private void drawClock(Canvas canvas, Calendar cal, int w, int h) {
+            float margin = w * 0.075f;
+            float baseline = h * 0.30f;
+            String t = hhmm.format(clock);
+            time.setTextSize(h * 0.26f);
+            meridiem.setTextSize(h * 0.05f);
+            date.setTextSize(h * 0.044f);
+            canvas.drawText(t, margin, baseline, time);
+            canvas.drawText(ampm.format(clock).toLowerCase(Locale.getDefault()),
+                    margin + time.measureText(t) + w * 0.012f, baseline, meridiem);
+            canvas.drawText(greeting(cal.get(Calendar.HOUR_OF_DAY)) + ". "
+                            + longDate.format(clock),
+                    margin + h * 0.006f, baseline + h * 0.075f, date);
+        }
+
+        /** Always on screen, opposite the time: now, what it is doing, and today's range. */
+        private void drawWeather(Canvas canvas, int w, int h) {
+            BriefFetcher.Weather wx = BriefFetcher.weather;
+            if (wx == null) return;
+            float right = w - w * 0.075f;
+            float baseline = h * 0.30f;
+            temp.setTextSize(h * 0.155f);
+            sky2.setTextSize(h * 0.042f);
+            canvas.drawText(wx.temp + "°", right, baseline, temp);
+            String line = wx.condition + (wx.place.isEmpty() ? "" : " in " + wx.place);
+            canvas.drawText(line, right, baseline + h * 0.052f, sky2);
+            sky2.setTextSize(h * 0.036f);
+            String range = wx.low + "° to " + wx.high + "°";
+            if (wx.rainChance >= 0) range += "    " + wx.rainChance + "% rain";
+            canvas.drawText(range, right, baseline + h * 0.100f, sky2);
+        }
+
+        /** A note or a headline, low and quiet, with the feed's picture when there is one. */
+        private void drawBand(Canvas canvas, long now, int w, int h) {
+            if (items.isEmpty()) return;
+            long into = now - bandStart;
+            if (into >= BAND_CYCLE_MS) {
+                bandStart = now;
+                into = 0;
+                bandIdx = (bandIdx + 1) % items.size();
+            }
+            float a = 1f;
+            if (into < BAND_FADE_MS) a = into / (float) BAND_FADE_MS;
+            else if (into > BAND_CYCLE_MS - BAND_FADE_MS) {
+                a = (BAND_CYCLE_MS - into) / (float) BAND_FADE_MS;
+            }
+            a = Math.max(0f, Math.min(1f, a));
+            BandItem item = items.get(bandIdx);
+
+            float margin = w * 0.075f;
+            float centre = h * 0.835f;
+            float textLeft = margin;
+
+            if (item.image != null && !item.image.isRecycled()) {
+                float size = h * 0.17f;
+                dst.set(margin, centre - size / 2f, margin + size * 1.35f, centre + size / 2f);
+                canvas.save();
+                clip.reset();
+                clip.addRoundRect(dst, h * 0.016f, h * 0.016f, Path.Direction.CW);
+                canvas.clipPath(clip);
+                photo.setAlpha((int) (255 * a));
+                canvas.drawBitmap(item.image, null, dst, photo);
+                canvas.restore();
+                textLeft = dst.right + w * 0.022f;
+            }
+
+            band.setAlpha((int) (255 * a));
+            band.setTextSize(h * 0.044f);
+            float maxWidth = (w - margin) - textLeft;
+            List<String> lines = wrap(item.text, band, maxWidth, 2);
+            float lineH = h * 0.058f;
+            float y = centre - (lines.size() - 1) * lineH / 2f + h * 0.014f;
+            for (String line : lines) {
+                canvas.drawText(line, textLeft, y, band);
+                y += lineH;
+            }
+        }
+
+        /** Greedy word wrap, capped at maxLines with an ellipsis on the last one. */
+        private static List<String> wrap(String text, Paint paint, float maxWidth, int maxLines) {
+            List<String> out = new ArrayList<>();
+            String[] words = text.split("\\s+");
+            StringBuilder line = new StringBuilder();
+            for (String word : words) {
+                String candidate = line.length() == 0 ? word : line + " " + word;
+                if (paint.measureText(candidate) <= maxWidth || line.length() == 0) {
+                    line.setLength(0);
+                    line.append(candidate);
+                } else {
+                    out.add(line.toString());
+                    line.setLength(0);
+                    line.append(word);
+                    if (out.size() == maxLines) break;
+                }
+            }
+            if (out.size() < maxLines && line.length() > 0) out.add(line.toString());
+            if (out.size() == maxLines && !out.isEmpty()) {
+                String last = out.get(out.size() - 1);
+                while (paint.measureText(last + "…") > maxWidth && last.length() > 1) {
+                    last = last.substring(0, last.length() - 1);
+                }
+                boolean truncated = paint.measureText(text) > maxWidth * maxLines;
+                if (truncated) out.set(out.size() - 1, last.trim() + "…");
+            }
+            return out;
+        }
+
         private void drawPhoto(Canvas canvas, Board.Item shot, int w, int h) {
             float margin = w * 0.07f;
             float captionH = h * 0.12f;
@@ -327,78 +475,37 @@ public class AmbientDream extends DreamService {
             clip.reset();
             clip.addRoundRect(dst.left - pad, dst.top - pad, dst.right + pad, dst.bottom + pad,
                     r + pad, r + pad, Path.Direction.CW);
-            canvas.drawPath(clip, matPaint);                   // dark mat so the blobs don't clash
+            canvas.drawPath(clip, mat);
             canvas.restore();
 
             canvas.save();
             clip.reset();
             clip.addRoundRect(dst, r, r, Path.Direction.CW);
             canvas.clipPath(clip);
-            canvas.drawBitmap(shot.photo, null, dst, photoPaint);
+            photo.setAlpha(255);
+            canvas.drawBitmap(shot.photo, null, dst, photo);
             canvas.restore();
 
             String caption = shot.line();
             if (!caption.isEmpty()) {
-                captionPaint.setTextSize(h * 0.045f);
+                band.setAlpha(230);
+                band.setTextSize(h * 0.045f);
+                band.setTextAlign(Paint.Align.CENTER);
+                float cw = band.measureText(caption);
                 float maxW = w - 2 * margin;
-                float cw = captionPaint.measureText(caption);
-                if (cw > maxW) captionPaint.setTextSize(captionPaint.getTextSize() * maxW / cw);
-                canvas.drawText(caption, w / 2f, dst.bottom + h * 0.075f, captionPaint);
+                if (cw > maxW) band.setTextSize(band.getTextSize() * maxW / cw);
+                canvas.drawText(caption, w / 2f, dst.bottom + h * 0.075f, band);
+                band.setTextAlign(Paint.Align.LEFT);
             }
         }
 
-        /** Small fixed clock, used while a photo has the screen. */
-        private void drawCornerClock(Canvas canvas, Calendar cal, int w, int h) {
-            clockPaint.setTextSize(h * 0.085f);
-            datePaint.setTextSize(h * 0.032f);
-            float x = w * 0.05f;
-            float y = h * 0.12f;
-            canvas.drawText(timeFmt.format(date) + " "
-                    + ampmFmt.format(date).toUpperCase(Locale.getDefault()), x, y, clockPaint);
-            canvas.drawText(dateFmt.format(date), x, y + h * 0.045f, datePaint);
-        }
-
-        /** The big clock that wanders around the screen, with one rotating brief line. */
-        private void drawWanderingClock(Canvas canvas, Calendar cal, float sec, long now, int w, int h) {
-            String time = timeFmt.format(date);
-            String ampm = ampmFmt.format(date).toUpperCase(Locale.getDefault());
-            clockPaint.setTextSize(h * 0.24f);
-            ampmPaint.setTextSize(h * 0.05f);
-            datePaint.setTextSize(h * 0.045f);
-            float timeW = clockPaint.measureText(time);
-            float ampmW = ampmPaint.measureText(ampm);
-            float blockW = timeW + ampmW + h * 0.03f;
-            float marginX = w * 0.06f;
-            float rangeX = Math.max(0f, w - blockW - 2 * marginX);
-            float x = marginX + rangeX * (0.5f + 0.5f * (float) Math.sin(sec * 0.021f));
-            float top = h * 0.14f;
-            float rangeY = h * 0.34f;
-            float y = top + h * 0.24f + rangeY * (0.5f + 0.5f * (float) Math.sin(sec * 0.015f + 1.0f));
-            canvas.drawText(time, x, y, clockPaint);
-            canvas.drawText(ampm, x + timeW + h * 0.03f, y - h * 0.13f, ampmPaint);
-            String dateLine = greeting(cal.get(Calendar.HOUR_OF_DAY)) + "  ·  " + dateFmt.format(date);
-            float dx = Math.min(x + h * 0.01f, w - marginX - datePaint.measureText(dateLine));
-            canvas.drawText(dateLine, Math.max(marginX, dx), y + h * 0.075f, datePaint);
-
-            if (brief.isEmpty()) return;
-            long into = now - briefStart;
-            if (into >= BRIEF_CYCLE_MS) {
-                briefStart = now;
-                into = 0;
-                briefIdx = (briefIdx + 1) % brief.size();
-            }
-            float a = 1f;
-            if (into < BRIEF_FADE_MS) a = into / (float) BRIEF_FADE_MS;
-            else if (into > BRIEF_CYCLE_MS - BRIEF_FADE_MS)
-                a = (BRIEF_CYCLE_MS - into) / (float) BRIEF_FADE_MS;
-            briefPaint.setAlpha((int) (210 * Math.max(0f, Math.min(1f, a)) * (nightDim > 0.9f ? 1f : 0.8f)));
-            briefPaint.setTextSize(h * 0.052f);
-            String line = brief.get(briefIdx);
-            float maxW = w - 2 * marginX;
-            float lw = briefPaint.measureText(line);
-            if (lw > maxW) briefPaint.setTextSize(briefPaint.getTextSize() * maxW / lw);
-            float bx = Math.min(x + h * 0.01f, w - marginX - briefPaint.measureText(line));
-            canvas.drawText(line, Math.max(marginX, bx), y + h * 0.16f, briefPaint);
+        private void drawCornerClock(Canvas canvas, int w, int h) {
+            time.setTextSize(h * 0.075f);
+            date.setTextSize(h * 0.030f);
+            float x = w * 0.05f, y = h * 0.11f;
+            canvas.drawText(hhmm.format(clock) + " "
+                    + ampm.format(clock).toLowerCase(Locale.getDefault()), x, y, time);
+            canvas.drawText(longDate.format(clock), x, y + h * 0.042f, date);
         }
     }
 }
