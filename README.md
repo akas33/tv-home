@@ -1,15 +1,37 @@
 # tv-vibehack
 
-**Your TV, minus the ads.** Debloat any Android TV / Google TV over ADB and give it a clean,
-tvOS-inspired launcher. Hand the prompt to Claude Code or any coding assistant, answer a few
-questions about which apps you use, and it does the rest on the real TV.
+**A Xiaomi Mi TV with the ads stripped out, a clean launcher, an ambient screensaver, and a way
+for the family to put photos on the screen from their phones.**
+
+Built and tested on a Mi TV 4A Pro (MiTV-AXSO0, Android 9). Everything is reversible: packages are
+disabled rather than uninstalled, and one command puts the TV back as it was.
 
 | Stock home screen | After |
 |---|---|
 | ![Stock Google TV home with a sponsored ad](docs/stock-home.jpg) | ![tvOS-style launcher](docs/new-home.jpg) |
 
-Everything is reversible: packages are disabled, never uninstalled, and a restore script puts the
-stock launcher back.
+## What it does
+
+**Removes the ads.** Xiaomi's analytics, PatchWall and its sponsored rows, the silent app
+installer, the "TV Manager" cleaner and a pile of preloads - 26 packages in all, each one checked
+against the TV's own package list first. Casting, screen mirroring and the Google Assistant stay.
+
+**Replaces the home screen** with a black, tvOS-inspired launcher: a dock of the four apps you
+pick, the rest in a grid, one glass highlight that springs between tiles, and an Inputs menu that
+shows your HDMI ports under whatever names you gave them.
+
+**Adds an ambient screensaver.** A deep sky gradient that shifts through dawn, day, dusk and night
+with the hour, an oversized clock filled with the sky's own colour, today's weather, headlines with
+the article's picture, and the Hindu date - tithi, paksha, nakshatra and the next festival, all
+computed on the TV with no network and no API key. It dims to black at bedtime, and stays bright if
+you press a button because you are still up.
+
+**Puts a family board on the TV.** Open the page the TV serves on your home Wi-Fi, type a note or
+pick a photo, and it appears on the screen - with a banner over whatever is playing, so it is seen
+mid-film. A new photo fills the screensaver for ten minutes. Optionally the same board accepts
+email from outside the house, from senders you list.
+
+**Reclaims memory.** On a 1 GB TV, roughly 115 MB of permanently idle services.
 
 ## Quick start
 
@@ -145,3 +167,5 @@ Add your TV's debloat list, improve the launcher, or sharpen the prompt. See
 
 MIT, see [`LICENSE`](LICENSE). The Outfit typeface is under the SIL Open Font License, see
 `launcher/FONT-LICENSE-OFL.txt`.
+
+Built on [tv-vibehack](https://github.com/Gathin23/tv-vibehack) by Gathin, MIT licensed.
