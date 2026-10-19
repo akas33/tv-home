@@ -1,6 +1,7 @@
 package com.gathin.tvhome;
 
 import android.content.Context;
+import android.util.Log;
 import android.util.Xml;
 
 import org.json.JSONArray;
@@ -22,6 +23,7 @@ import java.util.List;
  * Both sources are optional and configured in res/values/config.xml; leave them blank to skip.
  */
 final class BriefFetcher {
+    private static final String TAG = "TvBrief";
     private static final long STALE_MS = 30L * 60 * 1000;
     private static final long RETRY_MS = 5L * 60 * 1000;
     private static final int MAX_HEADLINES = 5;
@@ -43,9 +45,10 @@ final class BriefFetcher {
         new Thread(() -> {
             try {
                 List<String> out = new ArrayList<>();
-                try { messages(app, out); } catch (Exception ignored) { }
-                try { weather(app, out); } catch (Exception ignored) { }
-                try { news(app, out); } catch (Exception ignored) { }
+                try { messages(app, out); } catch (Exception e) { Log.w(TAG, "notes failed", e); }
+                try { weather(app, out); } catch (Exception e) { Log.w(TAG, "weather failed", e); }
+                try { news(app, out); } catch (Exception e) { Log.w(TAG, "news failed", e); }
+                Log.i(TAG, "brief refreshed, " + out.size() + " line(s)");
                 if (!out.isEmpty()) {
                     lines = Collections.unmodifiableList(out);
                 } else {
