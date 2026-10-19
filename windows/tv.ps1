@@ -97,12 +97,18 @@ switch ($Cmd) {
         # alone aborts the step, so relax it here and judge success by what lands on disk instead.
         $prevEAP = $ErrorActionPreference
         $ErrorActionPreference = "Continue"
+        # sdkmanager is a .bat wrapping java, and piping into it from PowerShell does not reach the
+        # prompt, so the licence question stalls the run. Feed it a file of y's through cmd instead.
+        $yes = Join-Path $env:TEMP "sdk-yes.txt"
+        ("y`r`n" * 60) | Set-Content -Path $yes -Encoding ascii -NoNewline
         try {
-            ("y`n" * 40) | & $mgr --sdk_root="$sdk" --licenses 2>&1 | Out-Null
-            & $mgr --sdk_root="$sdk" "platforms;android-34" "build-tools;34.0.0" "platform-tools" 2>&1 |
+            cmd /c "`"$mgr`" --sdk_root=`"$sdk`" --licenses < `"$yes`"" 2>&1 |
+                ForEach-Object { if ($_ -notmatch '^\s*$') { Write-Host "    $_" } } | Out-Null
+            cmd /c "`"$mgr`" --sdk_root=`"$sdk`" `"platforms;android-34`" `"build-tools;34.0.0`" `"platform-tools`" < `"$yes`"" 2>&1 |
                 ForEach-Object { Write-Host "    $_" }
         } finally {
             $ErrorActionPreference = $prevEAP
+            Remove-Item $yes -Force -ErrorAction SilentlyContinue
         }
 
         Write-Host ""
