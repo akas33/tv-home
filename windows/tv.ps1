@@ -221,6 +221,33 @@ switch ($Cmd) {
         if (-not $env:JAVA_HOME) { throw "JAVA_HOME not set. Install Android Studio or JDK 17 (see windows\README.md)." }
         $sdk = $env:ANDROID_HOME -replace "\\", "/"
         "sdk.dir=$sdk" | Out-File local.properties -Encoding ascii
+
+        # Gradle downloads itself on first build, with a 10s timeout and no retries - hopeless on a
+        # slow line. Fetch it once over BITS (resumable) and point the wrapper at the local copy.
+        $props = "gradle\wrapper\gradle-wrapper.properties"
+        $gradleVer = ([regex]::Match((Get-Content $props -Raw), 'gradle-([0-9.]+)-bin\.zip')).Groups[1].Value
+        if (-not $gradleVer) { $gradleVer = "8.9" }
+        $dist = Join-Path $Repo "gradle-$gradleVer-bin.zip"
+        if (-not (Test-Path $dist)) {
+            Write-Host "Fetching Gradle $gradleVer once (about 130 MB, resumes if the line drops)..."
+            try {
+                Import-Module BitsTransfer -ErrorAction Stop
+                Start-BitsTransfer -Source "https://services.gradle.org/distributions/gradle-$gradleVer-bin.zip" `
+                                   -Destination $dist -Description "Gradle $gradleVer"
+            } catch {
+                Invoke-WebRequest -Uri "https://services.gradle.org/distributions/gradle-$gradleVer-bin.zip" `
+                                  -OutFile $dist -UseBasicParsing
+            }
+        }
+        if ((Get-Item $dist).Length -lt 50MB) {
+            Remove-Item $dist -Force
+            throw "Gradle download came out too small. Run install again - it resumes."
+        }
+        # a .properties file needs its colons escaped
+        $escaped = ($dist -replace '\\', '/') -replace ':', '\:'
+        (Get-Content $props) -replace '^distributionUrl=.*', "distributionUrl=file\:///$escaped" |
+            Set-Content $props -Encoding ascii
+        Write-Host "Using local Gradle at $dist"
         & .\gradlew.bat assembleDebug -q --console=plain
         if ($LASTEXITCODE -ne 0) { throw "Build failed (see messages above)." }
         $apk = "app\build\outputs\apk\debug\app-debug.apk"
