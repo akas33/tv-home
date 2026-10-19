@@ -9,7 +9,10 @@
 <resources>
 
     <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. -->
+    <!-- An entry written "input:Name" pins a TV input here, so a set-top box is one press rather
+         than three through the Inputs menu. The name must match what the Inputs menu shows. -->
     <string-array name="dock_apps">
+        <item>input:Jio</item>
         <item>com.netflix.ninja</item>
         <item>com.amazon.amazonvideo.livingroom</item>
         <item>com.google.android.youtube.tv</item>
@@ -29,6 +32,10 @@
 
     <!-- Tiles per row in the grid; the dock always has this many slots. -->
     <integer name="columns">4</integer>
+
+    <!-- Greet in Hindi on the home screen. Set false if your TV has no Devanagari font and the
+         greeting shows as boxes. The screensaver keeps English either way. -->
+    <bool name="greeting_in_hindi">true</bool>
 
     <!-- Rename inputs in the Inputs menu: "original name=new name". Spaces and case are ignored when
          matching, so "HDMI 1" also matches "HDMI1". Check the real names by opening the Inputs menu. -->

@@ -353,12 +353,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void updateGreeting() {
         int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        boolean hindi = getResources().getBoolean(R.bool.greeting_in_hindi);
         int res;
-        if (hour < 5) res = R.string.good_night;
-        else if (hour < 12) res = R.string.good_morning;
-        else if (hour < 17) res = R.string.good_afternoon;
-        else if (hour < 22) res = R.string.good_evening;
-        else res = R.string.good_night;
+        if (hour < 5) res = hindi ? R.string.good_night_hi : R.string.good_night;
+        else if (hour < 12) res = hindi ? R.string.good_morning_hi : R.string.good_morning;
+        else if (hour < 17) res = hindi ? R.string.good_afternoon_hi : R.string.good_afternoon;
+        else if (hour < 22) res = hindi ? R.string.good_evening_hi : R.string.good_evening;
+        else res = hindi ? R.string.good_night_hi : R.string.good_night;
         greeting.setText(res);
     }
 
@@ -497,11 +498,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             Collections.sort(inputs, (a, b) -> {
                 boolean ha = a.getType() == TvInputInfo.TYPE_HDMI, hb = b.getType() == TvInputInfo.TYPE_HDMI;
                 if (ha != hb) return ha ? -1 : 1;
-                return inputLabel(a).compareToIgnoreCase(inputLabel(b));
+                return TvInputs.label(this, a).compareToIgnoreCase(TvInputs.label(this, b));
             });
             for (TvInputInfo info : inputs) {
                 if (!info.isPassthroughInput()) continue;
-                String label = inputLabel(info);
+                String label = TvInputs.label(this, info);
                 boolean hdmi = info.getType() == TvInputInfo.TYPE_HDMI;
                 // Only dress up a bare port number ("1" -> "HDMI 1"). If the input has been given
                 // a real name in the TV's own Inputs settings, show that name as it is.

@@ -16,6 +16,13 @@
     <string name="good_afternoon">Good afternoon</string>
     <string name="good_evening">Good evening</string>
     <string name="good_night">Good night</string>
+
+    <!-- Home screen greeting. Space Grotesk has no Devanagari, so the TV's own Hindi font is used
+         for these; if your TV lacks one you will see boxes - set greeting_in_hindi to false. -->
+    <string name="good_morning_hi">शुभ प्रभात</string>
+    <string name="good_afternoon_hi">शुभ दोपहर</string>
+    <string name="good_evening_hi">शुभ संध्या</string>
+    <string name="good_night_hi">शुभ रात्रि</string>
     <string name="ethernet">Ethernet</string>
     <string name="offline">Offline</string>
     <string name="screensaver_name">Ambient</string>

@@ -11,7 +11,11 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Rect;
+import android.content.SharedPreferences;
 import android.graphics.drawable.Drawable;
+import android.media.tv.TvContract;
+import android.media.tv.TvInputInfo;
+import android.media.tv.TvInputManager;
 import android.net.Uri;
 import android.provider.Settings;
 import android.view.KeyEvent;
@@ -49,10 +53,11 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
 
     static final class Entry {
         final String label;
-        final ComponentName component;
-        final String pkg;
+        final ComponentName component;    // null for an input tile
+        final String pkg;                 // "input:<name>" for an input tile, so the dock can order it
         final Drawable banner;
         final Drawable icon;
+        final String inputId;             // set only for an input tile
         int ambient;
 
         Entry(String label, ComponentName component, Drawable banner, Drawable icon) {
@@ -61,8 +66,23 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             this.pkg = component.getPackageName();
             this.banner = banner;
             this.icon = icon;
+            this.inputId = null;
+        }
+
+        /** A tile that switches the TV to an input rather than opening an app. */
+        Entry(String label, String inputId, Drawable icon) {
+            this.label = label;
+            this.component = null;
+            this.pkg = DOCK_INPUT_PREFIX + label;
+            this.banner = null;
+            this.icon = icon;
+            this.inputId = inputId;
         }
     }
+
+    /** Put "input:Jio" in dock_apps to pin an input beside the apps. */
+    static final String DOCK_INPUT_PREFIX = "input:";
+    private static final String USAGE_PREFS = "tile_usage";
 
     static final float FOCUS_SCALE = 1.10f;
 
@@ -83,6 +103,30 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         this.hidden = new HashSet<>(Arrays.asList(ctx.getResources().getStringArray(R.array.hidden_apps)));
     }
 
+    private SharedPreferences usage() {
+        return ctx.getSharedPreferences(USAGE_PREFS, Context.MODE_PRIVATE);
+    }
+
+    /**
+     * Any dock_apps entry written as "input:Name" becomes a tile that switches straight to that
+     * input, so a set-top box is one press rather than three through the Inputs menu.
+     */
+    private void addInputTiles(List<Entry> fresh) {
+        TvInputManager tim = (TvInputManager) ctx.getSystemService(Context.TV_INPUT_SERVICE);
+        if (tim == null) return;
+        for (String fav : favourites) {
+            if (!fav.startsWith(DOCK_INPUT_PREFIX)) continue;
+            String wanted = fav.substring(DOCK_INPUT_PREFIX.length()).trim();
+            for (TvInputInfo info : tim.getTvInputList()) {
+                if (!info.isPassthroughInput()) continue;
+                String name = TvInputs.label(ctx, info);
+                if (!name.equalsIgnoreCase(wanted)) continue;
+                fresh.add(new Entry(name, info.getId(), ctx.getDrawable(R.drawable.ic_input)));
+                break;
+            }
+        }
+    }
+
     void reload() {
         PackageManager pm = ctx.getPackageManager();
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
@@ -98,13 +142,18 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             String label = String.valueOf(ri.loadLabel(pm));
             fresh.add(new Entry(label, new ComponentName(pkg, ri.activityInfo.name), banner, icon));
         }
+        addInputTiles(fresh);
+        final SharedPreferences used = usage();
         Collections.sort(fresh, (a, b) -> {
             int fa = favourites.indexOf(a.pkg), fb = favourites.indexOf(b.pkg);
-            if (fa >= 0 || fb >= 0) {
+            if (fa >= 0 || fb >= 0) {                       // the dock keeps the order you chose
                 if (fa < 0) return 1;
                 if (fb < 0) return -1;
                 return Integer.compare(fa, fb);
             }
+            // everything else: most recently opened first, then apps never opened, alphabetically
+            long la = used.getLong(a.pkg, 0L), lb = used.getLong(b.pkg, 0L);
+            if (la != lb) return Long.compare(lb, la);
             return a.label.compareToIgnoreCase(b.label);
         });
         items.clear();
@@ -142,6 +191,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         }
         h.card.setOnClickListener(v -> launch(e));
         h.card.setOnLongClickListener(v -> {
+            if (e.inputId != null) return true;
             Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             try {
@@ -153,6 +203,18 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     private void launch(Entry e) {
+        usage().edit().putLong(e.pkg, System.currentTimeMillis()).apply();
+        if (e.inputId != null) {
+            try {
+                ctx.startActivity(new Intent(Intent.ACTION_VIEW)
+                        .setDataAndType(TvContract.buildChannelUriForPassthroughInput(e.inputId),
+                                "vnd.android.cursor.item/channel")
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            } catch (Exception ex) {
+                Toast.makeText(ctx, "Can't switch to " + e.label, Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
         Intent i = new Intent(Intent.ACTION_MAIN)
                 .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
                 .setComponent(e.component)
