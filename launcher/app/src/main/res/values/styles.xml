@@ -17,7 +17,7 @@
         <item name="android:background">@drawable/pill_bg</item>
         <item name="android:textColor">#FFFFFFFF</item>
         <item name="android:textSize">15sp</item>
-        <item name="android:fontFamily">@font/outfit</item>
+        <item name="android:fontFamily">@font/space_grotesk</item>
         <item name="android:fontVariationSettings">\'wght\' 500</item>
         <item name="android:letterSpacing">0.01</item>
         <item name="android:drawablePadding">9dp</item>

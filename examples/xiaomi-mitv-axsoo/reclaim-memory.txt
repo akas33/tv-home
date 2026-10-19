@@ -15,9 +15,7 @@ com.google.android.leanbacklauncher.recommendations
 com.google.android.tungsten.setupwraith
 
 
-# ---------------------------------------------------------------------------
-# OPTIONAL - 69 MB, but you said you wanted firmware updates. Remove the "# " to
-# include it, and re-enable it with the restore command when you want to check
-# for an update.
-# ---------------------------------------------------------------------------
-# com.xiaomi.mitv.updateservice
+# 69 MB held for updates that are not coming: this TV's security patch is dated June 2021 and
+# Xiaomi stopped supporting the model years ago. Re-enable it with the restore command if you
+# ever want to check for one by hand.
+com.xiaomi.mitv.updateservice

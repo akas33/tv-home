@@ -28,7 +28,7 @@
         android:layout_marginEnd="4dp"
         android:textColor="#FFFFFFFF"
         android:textSize="16sp"
-        android:fontFamily="@font/outfit"
+        android:fontFamily="@font/space_grotesk"
         android:fontVariationSettings="'wght' 600"
         android:singleLine="true"
         android:ellipsize="end" />
@@ -46,7 +46,7 @@
         android:layout_height="wrap_content"
         android:textColor="#E6FFFFFF"
         android:textSize="12sp"
-        android:fontFamily="@font/outfit"
+        android:fontFamily="@font/space_grotesk"
         android:fontVariationSettings="'wght' 500"
         android:letterSpacing="0.04" />
 </LinearLayout>

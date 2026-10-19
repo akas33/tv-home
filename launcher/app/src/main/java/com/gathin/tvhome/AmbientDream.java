@@ -81,7 +81,6 @@ public class AmbientDream extends DreamService {
         private final Paint glow = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint vignette = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint time = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final Paint meridiem = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint date = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint temp = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint sky2 = new Paint(Paint.ANTI_ALIAS_FLAG);   // condition + range
@@ -93,7 +92,6 @@ public class AmbientDream extends DreamService {
         private final RectF dst = new RectF();
 
         private final SimpleDateFormat hhmm = new SimpleDateFormat("h:mm", Locale.getDefault());
-        private final SimpleDateFormat ampm = new SimpleDateFormat("a", Locale.getDefault());
         private final SimpleDateFormat longDate =
                 new SimpleDateFormat("EEEE, d MMMM", Locale.getDefault());
         private final Date clock = new Date();
@@ -128,23 +126,17 @@ public class AmbientDream extends DreamService {
 
         AmbientView(Context c) {
             super(c);
-            Typeface base, display;
+            // One family throughout, Space Grotesk, with hierarchy carried by weight and size.
+            // Its figures have real character at clock size and it stays legible down in the band.
+            Typeface base;
             try {
-                base = getResources().getFont(R.font.outfit);
+                base = getResources().getFont(R.font.space_grotesk);
             } catch (Exception e) {
-                base = Typeface.create("sans-serif-light", Typeface.NORMAL);
+                base = Typeface.create("sans-serif", Typeface.NORMAL);
             }
-            try {
-                // Space Grotesk for the numerals: its figures have real character at this size,
-                // which is what makes the clock worth looking at
-                display = getResources().getFont(R.font.space_grotesk);
-            } catch (Exception e) {
-                display = base;
-            }
+            Typeface display = base;
             time.setTypeface(weight(display, 300));
             time.setColor(0xFFF2F6FA);
-            meridiem.setTypeface(weight(base, 400));
-            meridiem.setColor(0x8CFFFFFF);
             date.setTypeface(weight(base, 500));
             date.setColor(0xFFFFFFFF);
             temp.setTypeface(weight(display, 400));
@@ -387,14 +379,13 @@ public class AmbientDream extends DreamService {
             time.setShader(null);
             time.clearShadowLayer();
 
-            meridiem.setTextSize(h * 0.05f);
+            // No am/pm chip: the greeting below already says which half of the day it is, and the
+            // marker only cluttered the one element meant to carry the screen.
             date.setTextSize(h * 0.046f);
-            canvas.drawText(ampm.format(clock).toLowerCase(Locale.getDefault()),
-                    margin + time.measureText(t) + w * 0.014f, baseline, meridiem);
             canvas.drawText(greeting(cal.get(Calendar.HOUR_OF_DAY)) + ". " + longDate.format(clock),
                     margin + h * 0.006f, baseline + h * 0.072f, date);
             try {
-                    hindu.setTextSize(h * 0.038f);
+                hindu.setTextSize(h * 0.038f);
                 String hinduLine = Panchang.at(cal).line();
                 String feast = Panchang.upcoming(cal);
                 if (feast != null) hinduLine = feast + "    " + hinduLine;
@@ -554,8 +545,7 @@ public class AmbientDream extends DreamService {
             time.setTextSize(h * 0.075f);
             date.setTextSize(h * 0.030f);
             float x = w * 0.05f, y = h * 0.11f;
-            canvas.drawText(hhmm.format(clock) + " "
-                    + ampm.format(clock).toLowerCase(Locale.getDefault()), x, y, time);
+            canvas.drawText(hhmm.format(clock), x, y, time);
             canvas.drawText(longDate.format(clock), x, y + h * 0.042f, date);
         }
     }
