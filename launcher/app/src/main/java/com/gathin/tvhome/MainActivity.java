@@ -389,6 +389,25 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /**
+     * What to call an input. A name the user set in the TV's own Inputs settings is kept in a
+     * separate "custom label"; the built-in label goes empty once they rename it, which left the
+     * row blank. Prefer the custom name, then the built-in one, then the raw id.
+     */
+    private String inputLabel(TvInputInfo info) {
+        try {
+            CharSequence custom = info.loadCustomLabel(this);
+            if (custom != null && custom.toString().trim().length() > 0) {
+                return custom.toString().trim();
+            }
+        } catch (Exception ignored) {
+            // older or odd firmware: fall through to the built-in label
+        }
+        CharSequence l = info.loadLabel(this);
+        String label = l == null ? "" : l.toString().trim();
+        return label.isEmpty() ? info.getId() : label;
+    }
+
     /** Renames an input using input_labels in config.xml ("HDMI 1=Jio"); spaces and case ignored. */
     private String customLabel(String label) {
         String key = label.replaceAll("\\s", "");
@@ -424,12 +443,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             Collections.sort(inputs, (a, b) -> {
                 boolean ha = a.getType() == TvInputInfo.TYPE_HDMI, hb = b.getType() == TvInputInfo.TYPE_HDMI;
                 if (ha != hb) return ha ? -1 : 1;
-                return String.valueOf(a.loadLabel(this)).compareToIgnoreCase(String.valueOf(b.loadLabel(this)));
+                return inputLabel(a).compareToIgnoreCase(inputLabel(b));
             });
             for (TvInputInfo info : inputs) {
                 if (!info.isPassthroughInput()) continue;
-                CharSequence l = info.loadLabel(this);
-                String label = l == null ? info.getId() : l.toString();
+                String label = inputLabel(info);
                 boolean hdmi = info.getType() == TvInputInfo.TYPE_HDMI;
                 // Only dress up a bare port number ("1" -> "HDMI 1"). If the input has been given
                 // a real name in the TV's own Inputs settings, show that name as it is.
