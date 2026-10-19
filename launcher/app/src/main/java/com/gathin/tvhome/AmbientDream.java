@@ -146,16 +146,16 @@ public class AmbientDream extends DreamService {
             meridiem.setTypeface(weight(base, 400));
             meridiem.setColor(0x8CFFFFFF);
             date.setTypeface(weight(base, 300));
-            date.setColor(0xB8FFFFFF);
+            date.setColor(0xD9FFFFFF);
             temp.setTypeface(weight(display, 400));
             temp.setColor(0xFFF2F6FA);
             temp.setTextAlign(Paint.Align.RIGHT);
             sky2.setTypeface(weight(base, 400));
-            sky2.setColor(0xB8FFFFFF);
+            sky2.setColor(0xD9FFFFFF);
             sky2.setTextAlign(Paint.Align.RIGHT);
-            band.setTypeface(weight(base, 500));
+            band.setTypeface(weight(base, 400));
             hindu.setTypeface(weight(base, 400));
-            hindu.setColor(0x8CFFFFFF);
+            hindu.setColor(0x7AFFFFFF);
             band.setColor(0xFFFFFFFF);
             mat.setColor(0x4D000000);
             setBackgroundColor(Color.BLACK);
@@ -388,15 +388,15 @@ public class AmbientDream extends DreamService {
             time.clearShadowLayer();
 
             meridiem.setTextSize(h * 0.05f);
-            date.setTextSize(h * 0.042f);
+            date.setTextSize(h * 0.046f);
             canvas.drawText(ampm.format(clock).toLowerCase(Locale.getDefault()),
                     margin + time.measureText(t) + w * 0.014f, baseline, meridiem);
             canvas.drawText(greeting(cal.get(Calendar.HOUR_OF_DAY)) + ". " + longDate.format(clock),
                     margin + h * 0.006f, baseline + h * 0.072f, date);
             try {
-                hindu.setTextSize(h * 0.036f);
+                hindu.setTextSize(h * 0.034f);
                 canvas.drawText(Panchang.at(cal).line(), margin + h * 0.006f,
-                        baseline + h * 0.122f, hindu);
+                        baseline + h * 0.132f, hindu);
             } catch (Exception ignored) {
                 // the western date alone is fine
             }
@@ -418,14 +418,16 @@ public class AmbientDream extends DreamService {
             float right = w - w * 0.075f;
             float baseline = h * 0.345f;      // shares the clock's baseline, so the two blocks lock together
             temp.setTextSize(h * 0.14f);
-            sky2.setTextSize(h * 0.042f);
+            sky2.setTextSize(h * 0.046f);
             canvas.drawText(wx.temp + "°", right, baseline, temp);
             String line = wx.condition + (wx.place.isEmpty() ? "" : " in " + wx.place);
-            canvas.drawText(line, right, baseline + h * 0.052f, sky2);
-            sky2.setTextSize(h * 0.036f);
+            canvas.drawText(line, right, baseline + h * 0.058f, sky2);
+            sky2.setTextSize(h * 0.034f);
+            sky2.setColor(0x7AFFFFFF);
             String range = wx.low + "° to " + wx.high + "°";
             if (wx.rainChance >= 0) range += "    " + wx.rainChance + "% rain";
-            canvas.drawText(range, right, baseline + h * 0.100f, sky2);
+            canvas.drawText(range, right, baseline + h * 0.132f, sky2);
+            sky2.setColor(0xD9FFFFFF);
         }
 
         /** A note or a headline, low and quiet, with the feed's picture when there is one. */
@@ -446,7 +448,7 @@ public class AmbientDream extends DreamService {
             BandItem item = items.get(bandIdx);
 
             float margin = w * 0.075f;
-            float centre = h * 0.835f;
+            float centre = h * 0.845f;
             float textLeft = margin;
 
             if (item.image != null && !item.image.isRecycled()) {
@@ -463,10 +465,10 @@ public class AmbientDream extends DreamService {
             }
 
             band.setAlpha((int) (255 * a));
-            band.setTextSize(h * 0.050f);
+            band.setTextSize(h * 0.047f);
             float maxWidth = (w - margin) - textLeft;
             List<String> lines = wrap(item.text, band, maxWidth, 2);
-            float lineH = h * 0.064f;
+            float lineH = h * 0.060f;
             float y = centre - (lines.size() - 1) * lineH / 2f + h * 0.014f;
             for (String line : lines) {
                 canvas.drawText(line, textLeft, y, band);
