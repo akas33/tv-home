@@ -145,17 +145,17 @@ public class AmbientDream extends DreamService {
             time.setColor(0xFFF2F6FA);
             meridiem.setTypeface(weight(base, 400));
             meridiem.setColor(0x8CFFFFFF);
-            date.setTypeface(weight(base, 300));
-            date.setColor(0xD9FFFFFF);
+            date.setTypeface(weight(base, 500));
+            date.setColor(0xFFFFFFFF);
             temp.setTypeface(weight(display, 400));
             temp.setColor(0xFFF2F6FA);
             temp.setTextAlign(Paint.Align.RIGHT);
-            sky2.setTypeface(weight(base, 400));
-            sky2.setColor(0xD9FFFFFF);
+            sky2.setTypeface(weight(base, 500));
+            sky2.setColor(0xFFFFFFFF);
             sky2.setTextAlign(Paint.Align.RIGHT);
-            band.setTypeface(weight(base, 400));
-            hindu.setTypeface(weight(base, 400));
-            hindu.setColor(0x7AFFFFFF);
+            band.setTypeface(weight(base, 500));
+            hindu.setTypeface(weight(base, 500));
+            hindu.setColor(0xCCFFFFFF);
             band.setColor(0xFFFFFFFF);
             mat.setColor(0x4D000000);
             setBackgroundColor(Color.BLACK);
@@ -394,9 +394,11 @@ public class AmbientDream extends DreamService {
             canvas.drawText(greeting(cal.get(Calendar.HOUR_OF_DAY)) + ". " + longDate.format(clock),
                     margin + h * 0.006f, baseline + h * 0.072f, date);
             try {
-                hindu.setTextSize(h * 0.034f);
-                canvas.drawText(Panchang.at(cal).line(), margin + h * 0.006f,
-                        baseline + h * 0.132f, hindu);
+                    hindu.setTextSize(h * 0.038f);
+                String hinduLine = Panchang.at(cal).line();
+                String feast = Panchang.upcoming(cal);
+                if (feast != null) hinduLine = feast + "    " + hinduLine;
+                canvas.drawText(hinduLine, margin + h * 0.006f, baseline + h * 0.132f, hindu);
             } catch (Exception ignored) {
                 // the western date alone is fine
             }
@@ -422,12 +424,12 @@ public class AmbientDream extends DreamService {
             canvas.drawText(wx.temp + "°", right, baseline, temp);
             String line = wx.condition + (wx.place.isEmpty() ? "" : " in " + wx.place);
             canvas.drawText(line, right, baseline + h * 0.058f, sky2);
-            sky2.setTextSize(h * 0.034f);
-            sky2.setColor(0x7AFFFFFF);
+            sky2.setTextSize(h * 0.038f);
+            sky2.setColor(0xCCFFFFFF);
             String range = wx.low + "° to " + wx.high + "°";
             if (wx.rainChance >= 0) range += "    " + wx.rainChance + "% rain";
             canvas.drawText(range, right, baseline + h * 0.132f, sky2);
-            sky2.setColor(0xD9FFFFFF);
+            sky2.setColor(0xFFFFFFFF);
         }
 
         /** A note or a headline, low and quiet, with the feed's picture when there is one. */
@@ -465,7 +467,7 @@ public class AmbientDream extends DreamService {
             }
 
             band.setAlpha((int) (255 * a));
-            band.setTextSize(h * 0.047f);
+            band.setTextSize(h * 0.050f);
             float maxWidth = (w - margin) - textLeft;
             List<String> lines = wrap(item.text, band, maxWidth, 2);
             float lineH = h * 0.060f;

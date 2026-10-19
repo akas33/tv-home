@@ -36,6 +36,8 @@ final class Panchang {
 
     final String tithi, nakshatra, paksha;
     final int tithiIndex;        // 1..30
+    /** Today's festival, or null. Set by festivalOn(). */
+    String festival;
 
     private Panchang(int tithiIndex, String tithi, String nakshatra, String paksha) {
         this.tithiIndex = tithiIndex;
@@ -61,6 +63,93 @@ final class Panchang {
     /** Reads naturally on screen: "Shukla Navami, Shravana". */
     String line() {
         return paksha + " " + tithi + ", " + nakshatra;
+    }
+
+    // ---- the Hindu month, and festivals ----
+
+    static final String[] MONTHS = {
+            "Chaitra", "Vaishakha", "Jyeshtha", "Ashadha", "Shravana", "Bhadrapada", "Ashwina",
+            "Kartika", "Margashirsha", "Pausha", "Magha", "Phalguna"
+    };
+
+    /** name, purnimanta month, tithi (1..30). North Indian reckoning. */
+    private static final String[][] FESTIVALS = {
+            {"Maha Shivaratri", "Phalguna", "29"},
+            {"Holi", "Phalguna", "15"},
+            {"Ram Navami", "Chaitra", "9"},
+            {"Hanuman Jayanti", "Chaitra", "15"},
+            {"Guru Purnima", "Ashadha", "15"},
+            {"Raksha Bandhan", "Shravana", "15"},
+            {"Janmashtami", "Bhadrapada", "23"},
+            {"Ganesh Chaturthi", "Bhadrapada", "4"},
+            {"Navratri begins", "Ashwina", "1"},
+            {"Dussehra", "Ashwina", "10"},
+            {"Sharad Purnima", "Ashwina", "15"},
+            {"Karva Chauth", "Kartika", "19"},
+            {"Diwali", "Kartika", "30"},
+            {"Govardhan Puja", "Kartika", "1"},
+            {"Bhai Dooj", "Kartika", "2"},
+    };
+
+    /**
+     * North India keeps purnimanta months, which end at the full moon: the same as the amanta
+     * month during the waxing fortnight, and one ahead during the waning one. The amanta month is
+     * named from the sidereal sign the sun occupies at the new moon the month began at.
+     */
+    private static int monthIndex(double julian) {
+        double nm = previousNewMoon(julian);
+        int amanta = ((int) (norm(sunLongitude(nm) - ayanamsa(nm)) / 30.0) + 1) % 12;
+        double elongation = norm(moonLongitude(julian) - sunLongitude(julian));
+        boolean waxing = elongation < 180.0;
+        return waxing ? amanta : (amanta + 1) % 12;
+    }
+
+    /** The elongation falls as we step back and wraps past zero at the new moon. */
+    private static double previousNewMoon(double julian) {
+        double j = julian;
+        double previous = norm(moonLongitude(j) - sunLongitude(j));
+        for (int i = 0; i < 300; i++) {
+            j -= 0.125;
+            double current = norm(moonLongitude(j) - sunLongitude(j));
+            if (current > previous) return j + 0.125;
+            previous = current;
+        }
+        return julian;
+    }
+
+    /**
+     * The festival on this date, or null. A tithi can start and end inside one day, so the day is
+     * sampled at several hours rather than once.
+     */
+    static String festivalOn(Calendar day) {
+        Calendar probe = (Calendar) day.clone();
+        for (int hour : new int[]{6, 10, 14, 18, 21}) {
+            probe.set(Calendar.HOUR_OF_DAY, hour);
+            probe.set(Calendar.MINUTE, 0);
+            probe.set(Calendar.SECOND, 0);
+            double julian = julianDay(probe);
+            int t = (int) (norm(moonLongitude(julian) - sunLongitude(julian)) / 12.0) + 1;
+            String month = MONTHS[monthIndex(julian)];
+            for (String[] f : FESTIVALS) {
+                if (month.equals(f[1]) && t == Integer.parseInt(f[2])) return f[0];
+            }
+        }
+        return null;
+    }
+
+    /** "Diwali today" or "Dussehra in 5 days", looking a fortnight ahead. Null if nothing is near. */
+    static String upcoming(Calendar from) {
+        Calendar day = (Calendar) from.clone();
+        for (int ahead = 0; ahead <= 14; ahead++) {
+            String f = festivalOn(day);
+            if (f != null) {
+                if (ahead == 0) return f + " today";
+                if (ahead == 1) return f + " tomorrow";
+                return f + " in " + ahead + " days";
+            }
+            day.add(Calendar.DAY_OF_MONTH, 1);
+        }
+        return null;
     }
 
     // ---- astronomy ----

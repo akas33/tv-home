@@ -385,7 +385,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     private void updatePanchang() {
         try {
-            panchangLabel.setText(Panchang.at(Calendar.getInstance()).line());
+            Calendar now = Calendar.getInstance();
+            String line = Panchang.at(now).line();
+            String feast = Panchang.upcoming(now);
+            panchangLabel.setText(feast == null ? line : feast + "    " + line);
             panchangLabel.setVisibility(View.VISIBLE);
         } catch (Exception e) {
             panchangLabel.setVisibility(View.GONE);

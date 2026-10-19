@@ -1,0 +1,23 @@
+# Xiaomi Mi TV 4A Pro (MiTV-AXSO0) - free up memory, based on this TV's own meminfo.
+#
+#   .\windows\tv.ps1 disable examples\xiaomi-mitv-axsoo\reclaim-memory.txt
+#   .\windows\tv.ps1 restore examples\xiaomi-mitv-axsoo\reclaim-memory.txt
+#
+# Measured on this TV: 1,014,724 kB total, only 48 MB free. The launcher itself was 36 MB, so it
+# was never the problem. These two were, and neither does anything for you any more.
+
+# Feeds the recommendation rows of the STOCK launcher, which is disabled - so it is doing nothing
+# but using 25 MB, and its crash-report process was running too, meaning it keeps falling over.
+com.google.android.tvrecommendations
+com.google.android.leanbacklauncher.recommendations
+
+# The first-run setup wizard. It finished its job the day you unboxed the TV.
+com.google.android.tungsten.setupwraith
+
+
+# ---------------------------------------------------------------------------
+# OPTIONAL - 69 MB, but you said you wanted firmware updates. Remove the "# " to
+# include it, and re-enable it with the restore command when you want to check
+# for an update.
+# ---------------------------------------------------------------------------
+# com.xiaomi.mitv.updateservice
