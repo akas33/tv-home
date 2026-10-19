@@ -86,6 +86,7 @@ public class AmbientDream extends DreamService {
         private final Paint temp = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint sky2 = new Paint(Paint.ANTI_ALIAS_FLAG);   // condition + range
         private final Paint band = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint hindu = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint photo = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
         private final Paint mat = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Path clip = new Path();
@@ -127,25 +128,34 @@ public class AmbientDream extends DreamService {
 
         AmbientView(Context c) {
             super(c);
-            Typeface base;
+            Typeface base, display;
             try {
                 base = getResources().getFont(R.font.outfit);
             } catch (Exception e) {
                 base = Typeface.create("sans-serif-light", Typeface.NORMAL);
             }
-            time.setTypeface(weight(base, 200));
+            try {
+                // Space Grotesk for the numerals: its figures have real character at this size,
+                // which is what makes the clock worth looking at
+                display = getResources().getFont(R.font.space_grotesk);
+            } catch (Exception e) {
+                display = base;
+            }
+            time.setTypeface(weight(display, 300));
             time.setColor(0xFFF2F6FA);
             meridiem.setTypeface(weight(base, 400));
             meridiem.setColor(0x8CFFFFFF);
             date.setTypeface(weight(base, 300));
             date.setColor(0xB8FFFFFF);
-            temp.setTypeface(weight(base, 300));
+            temp.setTypeface(weight(display, 400));
             temp.setColor(0xFFF2F6FA);
             temp.setTextAlign(Paint.Align.RIGHT);
             sky2.setTypeface(weight(base, 400));
             sky2.setColor(0xB8FFFFFF);
             sky2.setTextAlign(Paint.Align.RIGHT);
             band.setTypeface(weight(base, 500));
+            hindu.setTypeface(weight(base, 400));
+            hindu.setColor(0x8CFFFFFF);
             band.setColor(0xFFFFFFFF);
             mat.setColor(0x4D000000);
             setBackgroundColor(Color.BLACK);
@@ -383,6 +393,13 @@ public class AmbientDream extends DreamService {
                     margin + time.measureText(t) + w * 0.014f, baseline, meridiem);
             canvas.drawText(greeting(cal.get(Calendar.HOUR_OF_DAY)) + ". " + longDate.format(clock),
                     margin + h * 0.006f, baseline + h * 0.072f, date);
+            try {
+                hindu.setTextSize(h * 0.036f);
+                canvas.drawText(Panchang.at(cal).line(), margin + h * 0.006f,
+                        baseline + h * 0.122f, hindu);
+            } catch (Exception ignored) {
+                // the western date alone is fine
+            }
         }
 
         /** Mixes two colours, amount 0 keeps a, amount 1 gives b. */
@@ -446,10 +463,10 @@ public class AmbientDream extends DreamService {
             }
 
             band.setAlpha((int) (255 * a));
-            band.setTextSize(h * 0.044f);
+            band.setTextSize(h * 0.050f);
             float maxWidth = (w - margin) - textLeft;
             List<String> lines = wrap(item.text, band, maxWidth, 2);
-            float lineH = h * 0.058f;
+            float lineH = h * 0.064f;
             float y = centre - (lines.size() - 1) * lineH / 2f + h * 0.014f;
             for (String line : lines) {
                 canvas.drawText(line, textLeft, y, band);

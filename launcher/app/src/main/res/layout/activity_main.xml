@@ -70,8 +70,8 @@
                         android:format24Hour="HH:mm"
                         android:textColor="#FFFFFFFF"
                         android:textSize="76sp"
-                        android:fontFamily="@font/outfit"
-                        android:fontVariationSettings="'wght' 200"
+                        android:fontFamily="@font/space_grotesk"
+                        android:fontVariationSettings="'wght' 300"
                         android:letterSpacing="-0.04"
                         android:includeFontPadding="false" />
 
@@ -109,6 +109,17 @@
                         android:fontVariationSettings="'wght' 400" />
 
                     <TextView
+                        android:id="@+id/panchang"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="22dp"
+                        android:textColor="#8CFFFFFF"
+                        android:textSize="16sp"
+                        android:fontFamily="@font/outfit"
+                        android:fontVariationSettings="'wght' 400"
+                        android:visibility="gone" />
+
+                    <TextView
                         android:id="@+id/weather"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -129,6 +140,13 @@
                 android:layout_alignBottom="@id/leftBlock"
                 android:layout_marginBottom="6dp"
                 android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/btnSearch"
+                    style="@style/TopButton"
+                    android:text="@string/search"
+                    android:drawableStart="@drawable/ic_search"
+                    android:nextFocusDown="@+id/grid" />
 
                 <TextView
                     android:id="@+id/btnInputs"

@@ -66,6 +66,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean heroShown;
     private TextView greeting;
     private TextView weatherLabel;
+    private TextView panchangLabel;
     private TextView btnWifi;
     private SpringAnimation springX, springY;
     private float glassTargetX, glassTargetY;
@@ -80,6 +81,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             updateGreeting();
             updateWifiLabel();
             updateWeather();      // the first fetch is async, so it lands on a later tick
+            updatePanchang();
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -105,6 +107,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 ambientGlow.setGradientRadius((r - l) * 0.62f));
         greeting = findViewById(R.id.greeting);
         weatherLabel = findViewById(R.id.weather);
+        panchangLabel = findViewById(R.id.panchang);
         btnWifi = findViewById(R.id.btnWifi);
 
         grid = findViewById(R.id.grid);
@@ -145,6 +148,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             s.setSpring(new SpringForce().setStiffness(260f).setDampingRatio(0.58f));
         }
 
+        View btnSearch = findViewById(R.id.btnSearch);
+        btnSearch.setOnClickListener(v -> openSearch());
         View btnInputs = findViewById(R.id.btnInputs);
         View btnSettings = findViewById(R.id.btnSettings);
         btnInputs.setOnClickListener(v -> showInputs());
@@ -156,9 +161,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         View.OnKeyListener pillKeys = (v, keyCode, event) -> {
             if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
             if (keyCode == KeyEvent.KEYCODE_DPAD_UP) return true;
-            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && v.getId() == R.id.btnInputs) return true;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && v.getId() == R.id.btnSearch) return true;
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == R.id.btnSettings;
         };
+        btnSearch.setOnKeyListener(pillKeys);
         btnInputs.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
@@ -373,6 +379,43 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         weatherLabel.setText(wx.temp + "\u00B0  " + wx.condition);
         weatherLabel.setVisibility(View.VISIBLE);
+    }
+
+    /**
+     * The Hindu date, worked out on the TV itself with no network and no data files. It can
+     * disagree with a published panchang by a few hours near the moment a tithi turns over;
+     * Panchang explains why.
+     */
+    private void updatePanchang() {
+        try {
+            panchangLabel.setText(Panchang.at(Calendar.getInstance()).line());
+            panchangLabel.setVisibility(View.VISIBLE);
+        } catch (Exception e) {
+            panchangLabel.setVisibility(View.GONE);
+        }
+    }
+
+    /**
+     * Opens whatever this TV uses for search - the Google app, here - so a search for something
+     * offers YouTube and the other apps that can play it.
+     */
+    private void openSearch() {
+        Intent[] candidates = {
+                new Intent(Intent.ACTION_ASSIST),
+                new Intent("android.search.action.GLOBAL_SEARCH"),
+                getPackageManager().getLeanbackLaunchIntentForPackage("com.google.android.katniss"),
+        };
+        for (Intent i : candidates) {
+            if (i == null) continue;
+            try {
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(i);
+                return;
+            } catch (Exception ignored) {
+                // this TV does not answer that one; try the next
+            }
+        }
+        Toast.makeText(this, R.string.search_unavailable, Toast.LENGTH_SHORT).show();
     }
 
     /** Shows the Wi-Fi network name on the button when we can read it, otherwise the connection type. */
