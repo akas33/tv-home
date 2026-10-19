@@ -415,12 +415,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * is not an option: it is a long service path, not something anyone wants to read.
      */
     private String portName(TvInputInfo info) {
-        try {
-            android.hardware.hdmi.HdmiDeviceInfo hdmi = info.getHdmiDeviceInfo();
-            if (hdmi != null && hdmi.getPortId() > 0) return "HDMI " + hdmi.getPortId();
-        } catch (Throwable ignored) {
-            // not an HDMI input, or the firmware does not report it
-        }
+        // The port number is in the input's id, e.g.
+        //   com.droidlogic.tvinput/.services.Hdmi1InputService/HW5  ->  HDMI 1
+        // (TvInputInfo.getHdmiDeviceInfo() would be tidier but is not public API.)
         java.util.regex.Matcher m =
                 java.util.regex.Pattern.compile("(?i)hdmi\\D{0,4}(\\d+)").matcher(info.getId());
         if (m.find()) return "HDMI " + m.group(1);
