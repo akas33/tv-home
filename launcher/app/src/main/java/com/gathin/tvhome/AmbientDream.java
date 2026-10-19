@@ -82,6 +82,7 @@ public class AmbientDream extends DreamService {
         private final Paint vignette = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint time = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint date = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint meridiem = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint temp = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint sky2 = new Paint(Paint.ANTI_ALIAS_FLAG);   // condition + range
         private final Paint band = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -92,6 +93,7 @@ public class AmbientDream extends DreamService {
         private final RectF dst = new RectF();
 
         private final SimpleDateFormat hhmm = new SimpleDateFormat("h:mm", Locale.getDefault());
+        private final SimpleDateFormat ampm = new SimpleDateFormat("a", Locale.getDefault());
         private final SimpleDateFormat longDate =
                 new SimpleDateFormat("EEEE, d MMMM", Locale.getDefault());
         private final Date clock = new Date();
@@ -138,6 +140,8 @@ public class AmbientDream extends DreamService {
             time.setTypeface(weight(display, 300));
             time.setColor(0xFFF2F6FA);
             date.setTypeface(weight(base, 500));
+            meridiem.setTypeface(weight(base, 500));
+            meridiem.setColor(0xD9FFFFFF);
             date.setColor(0xFFFFFFFF);
             temp.setTypeface(weight(display, 400));
             temp.setColor(0xFFF2F6FA);
@@ -379,8 +383,10 @@ public class AmbientDream extends DreamService {
             time.setShader(null);
             time.clearShadowLayer();
 
-            // No am/pm chip: the greeting below already says which half of the day it is, and the
-            // marker only cluttered the one element meant to carry the screen.
+            // am/pm sits on the clock's baseline at a size that looks chosen rather than left over
+            meridiem.setTextSize(h * 0.075f);
+            canvas.drawText(ampm.format(clock), margin + time.measureText(t) + w * 0.016f,
+                    baseline, meridiem);
             date.setTextSize(h * 0.046f);
             canvas.drawText(greeting(cal.get(Calendar.HOUR_OF_DAY)) + ". " + longDate.format(clock),
                     margin + h * 0.006f, baseline + h * 0.072f, date);
@@ -545,7 +551,7 @@ public class AmbientDream extends DreamService {
             time.setTextSize(h * 0.075f);
             date.setTextSize(h * 0.030f);
             float x = w * 0.05f, y = h * 0.11f;
-            canvas.drawText(hhmm.format(clock), x, y, time);
+            canvas.drawText(hhmm.format(clock) + " " + ampm.format(clock), x, y, time);
             canvas.drawText(longDate.format(clock), x, y + h * 0.042f, date);
         }
     }

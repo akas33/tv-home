@@ -75,6 +75,22 @@
                         android:letterSpacing="-0.04"
                         android:includeFontPadding="false" />
 
+                    <TextClock
+                        android:id="@+id/ampm"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_gravity="bottom"
+                        android:layout_marginBottom="14dp"
+                        android:format12Hour="a"
+                        android:format24Hour=""
+                        android:textColor="#D9FFFFFF"
+                        android:textSize="26sp"
+                        android:fontFamily="@font/space_grotesk"
+                        android:fontVariationSettings="'wght' 500"
+                        android:letterSpacing="0.02"
+                        android:includeFontPadding="false" />
+
                 </LinearLayout>
 
                 <LinearLayout
