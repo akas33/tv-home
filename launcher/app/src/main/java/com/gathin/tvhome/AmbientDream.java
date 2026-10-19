@@ -99,6 +99,9 @@ public class AmbientDream extends DreamService {
 
         private Shader skyShader, glowA, glowB, vignetteShader;
         private int skyBucket = -1, skyW, skyH;
+        private Shader timeShader;
+        private float timeShaderSize = -1f;
+        private int timeShaderBucket = -1;
 
         /** One thing in the bottom band: a family note, or a headline with its picture. */
         private static final class BandItem {
@@ -349,19 +352,46 @@ public class AmbientDream extends DreamService {
             canvas.drawRect(0, 0, w, h, vignette);
         }
 
+        /**
+         * The one loud element. Oversized hairline numerals filled with a vertical gradient that
+         * picks up the hour's own sky colour, so the time belongs to the scene rather than sitting
+         * on top of it as flat white text.
+         */
         private void drawClock(Canvas canvas, Calendar cal, int w, int h) {
             float margin = w * 0.075f;
-            float baseline = h * 0.30f;
+            float size = h * 0.34f;
+            float baseline = h * 0.345f;
             String t = hhmm.format(clock);
-            time.setTextSize(h * 0.26f);
-            meridiem.setTextSize(h * 0.05f);
-            date.setTextSize(h * 0.044f);
+
+            if (timeShader == null || timeShaderSize != size || timeShaderBucket != skyBucket) {
+                timeShaderSize = size;
+                timeShaderBucket = skyBucket;
+                int tint = blend(SKY[skyBucket][2], 0xFFFFFFFF, 0.55f);
+                timeShader = new LinearGradient(0, baseline - size * 0.78f, 0, baseline,
+                        0xFFFFFFFF, tint, Shader.TileMode.CLAMP);
+            }
+            time.setTextSize(size);
+            time.setShader(timeShader);
+            time.setShadowLayer(h * 0.05f, 0, h * 0.004f, 0x40000000);
             canvas.drawText(t, margin, baseline, time);
+            time.setShader(null);
+            time.clearShadowLayer();
+
+            meridiem.setTextSize(h * 0.05f);
+            date.setTextSize(h * 0.042f);
             canvas.drawText(ampm.format(clock).toLowerCase(Locale.getDefault()),
-                    margin + time.measureText(t) + w * 0.012f, baseline, meridiem);
-            canvas.drawText(greeting(cal.get(Calendar.HOUR_OF_DAY)) + ". "
-                            + longDate.format(clock),
-                    margin + h * 0.006f, baseline + h * 0.075f, date);
+                    margin + time.measureText(t) + w * 0.014f, baseline, meridiem);
+            canvas.drawText(greeting(cal.get(Calendar.HOUR_OF_DAY)) + ". " + longDate.format(clock),
+                    margin + h * 0.006f, baseline + h * 0.072f, date);
+        }
+
+        /** Mixes two colours, amount 0 keeps a, amount 1 gives b. */
+        private static int blend(int a, int b, float amount) {
+            float keep = 1f - amount;
+            return Color.argb(255,
+                    (int) (Color.red(a) * keep + Color.red(b) * amount),
+                    (int) (Color.green(a) * keep + Color.green(b) * amount),
+                    (int) (Color.blue(a) * keep + Color.blue(b) * amount));
         }
 
         /** Always on screen, opposite the time: now, what it is doing, and today's range. */
@@ -369,8 +399,8 @@ public class AmbientDream extends DreamService {
             BriefFetcher.Weather wx = BriefFetcher.weather;
             if (wx == null) return;
             float right = w - w * 0.075f;
-            float baseline = h * 0.30f;
-            temp.setTextSize(h * 0.155f);
+            float baseline = h * 0.345f;      // shares the clock's baseline, so the two blocks lock together
+            temp.setTextSize(h * 0.14f);
             sky2.setTextSize(h * 0.042f);
             canvas.drawText(wx.temp + "°", right, baseline, temp);
             String line = wx.condition + (wx.place.isEmpty() ? "" : " in " + wx.place);
