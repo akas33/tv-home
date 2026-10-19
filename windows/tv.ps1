@@ -325,6 +325,14 @@ switch ($Cmd) {
         Write-Host "If anything looks wrong: .\windows\tv.ps1 restore $list"
         Write-Host "When you are happy, close the door you opened: .\windows\tv.ps1 lockdown"
     }
+    "inputs" {
+        # What the TV actually reports for each input: id, built-in label, user-set custom label.
+        # Useful when a port shows up nameless and we need to know why.
+        Need-Venv
+        & $Py -I tools\tv.py "dumpsys tv_input | grep -iE 'TvInputInfo|mId=|mLabel|customLabel|mType|state' | head -60"
+        Write-Host ""
+        Write-Host "Send the above to Claude."
+    }
     "shot" {
         # Grab what is on the TV right now, so Claude can look at it instead of guessing.
         Need-Venv

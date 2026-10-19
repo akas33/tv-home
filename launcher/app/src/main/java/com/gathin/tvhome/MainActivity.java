@@ -405,7 +405,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         CharSequence l = info.loadLabel(this);
         String label = l == null ? "" : l.toString().trim();
-        return label.isEmpty() ? info.getId() : label;
+        if (!label.isEmpty()) return label;
+        return portName(info);
+    }
+
+    /**
+     * Last resort when a TV reports no name for an input at all. Work the port number out from the
+     * HDMI info, or failing that from the input's id, so a row is never blank. Showing the raw id
+     * is not an option: it is a long service path, not something anyone wants to read.
+     */
+    private String portName(TvInputInfo info) {
+        try {
+            android.hardware.hdmi.HdmiDeviceInfo hdmi = info.getHdmiDeviceInfo();
+            if (hdmi != null && hdmi.getPortId() > 0) return "HDMI " + hdmi.getPortId();
+        } catch (Throwable ignored) {
+            // not an HDMI input, or the firmware does not report it
+        }
+        java.util.regex.Matcher m =
+                java.util.regex.Pattern.compile("(?i)hdmi\\D{0,4}(\\d+)").matcher(info.getId());
+        if (m.find()) return "HDMI " + m.group(1);
+        if (info.getType() == TvInputInfo.TYPE_HDMI) return "HDMI";
+        return getString(R.string.choose_input);
     }
 
     /** Renames an input using input_labels in config.xml ("HDMI 1=Jio"); spaces and case ignored. */
@@ -501,13 +521,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         TextView status = row.findViewById(R.id.status);
         View dot = row.findViewById(R.id.dot);
 
-        // The focus highlight is near-white, so the text has to flip to dark on it. The colour
-        // state list handles that, but set it here too: a row nobody can read is worse than ugly.
-        row.setOnFocusChangeListener((v, focused) -> {
-            titleView.setTextColor(focused ? 0xFF111111 : 0xFFFFFFFF);
-            status.setTextColor(focused ? 0x99111111 : 0x73FFFFFF);
-            icon.setColorFilter(focused ? 0xFF111111 : 0xFFFFFFFF);
-        });
+        // Colours no longer change with focus: the highlight is translucent, so white text reads
+        // on it as well as on the panel. Nothing here can leave a row unreadable.
         // This TV reports "standby" for every port whether or not something is plugged in, so only
         // definite states are shown.
         if (state == TvInputManager.INPUT_STATE_CONNECTED) {

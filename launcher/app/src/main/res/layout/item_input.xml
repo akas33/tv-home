@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- One row of the Inputs menu. Colours are fixed white rather than state lists: the highlight is
+     translucent now, so nothing has to flip colour and nothing can end up unreadable. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="42dp"
+    android:layout_height="46dp"
     android:orientation="horizontal"
     android:gravity="center_vertical"
     android:paddingStart="12dp"
@@ -14,8 +16,7 @@
         android:id="@+id/icon"
         android:layout_width="20dp"
         android:layout_height="20dp"
-        android:tint="@color/pill_text"
-        android:duplicateParentState="true"
+        android:tint="#FFFFFFFF"
         android:contentDescription="@null" />
 
     <TextView
@@ -25,12 +26,12 @@
         android:layout_weight="1"
         android:layout_marginStart="10dp"
         android:layout_marginEnd="4dp"
-        android:textColor="@color/pill_text"
-        android:duplicateParentState="true"
-        android:textSize="15sp"
+        android:textColor="#FFFFFFFF"
+        android:textSize="16sp"
         android:fontFamily="@font/outfit"
-        android:fontVariationSettings="'wght' 500"
-        android:singleLine="true" />
+        android:fontVariationSettings="'wght' 600"
+        android:singleLine="true"
+        android:ellipsize="end" />
 
     <View
         android:id="@+id/dot"
@@ -43,9 +44,9 @@
         android:id="@+id/status"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="@color/pill_text_dim"
-        android:duplicateParentState="true"
-        android:textSize="11sp"
+        android:textColor="#E6FFFFFF"
+        android:textSize="12sp"
         android:fontFamily="@font/outfit"
+        android:fontVariationSettings="'wght' 500"
         android:letterSpacing="0.04" />
 </LinearLayout>

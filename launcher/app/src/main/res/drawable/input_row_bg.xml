@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Focus highlight for a row in the Inputs menu. A near-white block was too harsh against the
+     dark panel and forced the text to flip colour; a light translucent band with a brighter edge
+     reads just as clearly on a TV and lets the text stay white throughout. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_focused="true">
         <shape android:shape="rectangle">
-            <solid android:color="#F5FFFFFF" />
+            <solid android:color="#30FFFFFF" />
+            <stroke android:width="1dp" android:color="#73FFFFFF" />
             <corners android:radius="13dp" />
         </shape>
     </item>
