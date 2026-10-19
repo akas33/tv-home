@@ -93,11 +93,39 @@ switch ($Cmd) {
         if (-not $env:JAVA_HOME) { throw "Java 17 not found. Close this window, open a new one, and run this command again." }
         $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
         $mgr = Join-Path $dest "latest\bin\sdkmanager.bat"
-        ("y`n" * 40) | & $mgr --sdk_root="$sdk" --licenses 2>&1 | Out-Null
-        & $mgr --sdk_root="$sdk" "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+        # sdkmanager prints a deprecation warning to stderr. With ErrorActionPreference=Stop that
+        # alone aborts the step, so relax it here and judge success by what lands on disk instead.
+        $prevEAP = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        try {
+            ("y`n" * 40) | & $mgr --sdk_root="$sdk" --licenses 2>&1 | Out-Null
+            & $mgr --sdk_root="$sdk" "platforms;android-34" "build-tools;34.0.0" "platform-tools" 2>&1 |
+                ForEach-Object { Write-Host "    $_" }
+        } finally {
+            $ErrorActionPreference = $prevEAP
+        }
+
         Write-Host ""
-        Write-Host "Done. SDK is at $sdk"
-        Write-Host "Next: turn USB debugging back on on the TV, then run  .\windows\tv.ps1 install"
+        Write-Host "=== checking what actually installed ==="
+        $need = @{
+            "Android 34 platform" = Join-Path $sdk "platforms\android-34"
+            "Build tools 34.0.0"  = Join-Path $sdk "build-tools\34.0.0"
+            "Java 17"             = $env:JAVA_HOME
+        }
+        $missing = @()
+        foreach ($k in $need.Keys) {
+            if (Test-Path $need[$k]) { Write-Host "  OK      $k" }
+            else { Write-Host "  MISSING $k"; $missing += $k }
+        }
+        if ($missing.Count -gt 0) {
+            Write-Host ""
+            Write-Host "Some pieces are missing. Run this command again - it resumes and skips what is done."
+            Write-Host "If it keeps failing, send Claude everything printed above."
+        } else {
+            Write-Host ""
+            Write-Host "All set. SDK is at $sdk"
+            Write-Host "Next: turn USB debugging back on on the TV, then run  .\windows\tv.ps1 install"
+        }
     }
     "prereqs" {
         # Everything the PC needs, in one command. The Android Studio download is a few GB, so
