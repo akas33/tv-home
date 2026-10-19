@@ -1,0 +1,60 @@
+# Xiaomi Mi TV 4A Pro (MiTV-AXSO0, dangal) - DEEPER CLEANUP, stage 2.
+# Run this AFTER ads-only.txt. It keeps the stock home screen, so the Home button is never at risk.
+#
+#   .\windows\tv.ps1 disable examples\xiaomi-mitv-axsoo\more-cleanup.txt
+#   .\windows\tv.ps1 restore examples\xiaomi-mitv-axsoo\more-cleanup.txt
+#
+# Every package below was confirmed present on this TV's own package list.
+#
+# HONEST EXPECTATION: the big wins were in ads-only.txt (analytics, PatchWall, the cleaner app).
+# What is left is mostly idle apps that occupy storage rather than CPU, so expect a tidier TV and
+# a little less background chatter, not a dramatic speed-up. On a 1 GB TV the real limit is RAM,
+# and no amount of disabling changes that.
+
+# --- Things a television genuinely cannot use ---
+com.android.printspooler                  # printing
+com.android.smspush                       # SMS
+com.android.camera2                       # there is no camera
+com.android.cts.ctsshim                   # Google compatibility-test stubs
+com.android.cts.priv.ctsshim
+
+# --- Phoning home / setup-time services that have done their job ---
+com.google.android.tv.bugreportsender     # sends bug reports to Google
+com.google.android.partnersetup           # partner configuration, runs once at setup
+com.xiaomi.android.tvsetup.partnercustomizer   # Xiaomi's partner app installer
+com.google.android.feedback               # feedback reporter
+
+# --- Dead or unused preloads ---
+com.google.android.videos                 # Play Movies & TV, discontinued by Google
+com.xiaomi.mitv.handbook                  # the on-screen user manual
+com.xiaomo.tv.milegal                     # Xiaomi legal notices (yes, Xiaomi typo'd this too)
+com.xiaomi.mitv.mediaexplorer             # Mi file browser
+com.mitv.videoplayer                      # Mi video player
+com.mitv.gallery                          # Mi gallery
+
+
+# ===========================================================================
+# OPTIONAL - only if YOU do not use these. Delete the leading "# " to include.
+# ===========================================================================
+
+# com.sonyliv                             # SonyLIV app
+# com.google.android.youtube.tvmusic       # YouTube Music
+# com.google.android.marvin.talkback       # screen reader. LEAVE ON if anyone needs spoken menus
+# com.mitv.tvlock                          # Xiaomi parental lock
+# com.android.providers.calendar           # calendar storage
+# com.google.android.syncadapters.calendar # calendar sync
+# com.mitv.dream                           # Xiaomi's screensaver (leave until ours is installed)
+
+
+# ===========================================================================
+# NEVER DISABLE on this TV - listed so nobody adds them later
+# ===========================================================================
+# com.droidlogic*                 the chipset's own services: picture, sound, HDMI, tuner
+# com.google.android.apps.mediashell   Chromecast
+# com.mitv.milinkservice               casting
+# com.xiaomi.wfdsinkhelperservice       screen mirroring
+# com.xiaomi.mitv.updateservice         firmware updates
+# com.google.android.katniss            Google Assistant / voice search
+# com.xiaomi.mitv.res                   shared Xiaomi resources; disabling breaks settings
+# com.google.android.gms / gsf          Google Play services; breaks nearly every app
+# com.google.android.inputmethod.latin  the keyboard

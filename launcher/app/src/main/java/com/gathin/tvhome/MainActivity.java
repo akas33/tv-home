@@ -431,7 +431,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 CharSequence l = info.loadLabel(this);
                 String label = l == null ? info.getId() : l.toString();
                 boolean hdmi = info.getType() == TvInputInfo.TYPE_HDMI;
-                if (hdmi && !label.toUpperCase().contains("HDMI")) label = "HDMI " + label;
+                // Only dress up a bare port number ("1" -> "HDMI 1"). If the input has been given
+                // a real name in the TV's own Inputs settings, show that name as it is.
+                if (hdmi && label.matches("\\d+")) label = "HDMI " + label;
                 label = customLabel(label);
                 final String id = info.getId();
                 int state = tim.getInputState(id);
