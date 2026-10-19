@@ -65,6 +65,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private int ambientColor;
     private boolean heroShown;
     private TextView greeting;
+    private TextView weatherLabel;
     private TextView btnWifi;
     private SpringAnimation springX, springY;
     private float glassTargetX, glassTargetY;
@@ -78,6 +79,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         public void run() {
             updateGreeting();
             updateWifiLabel();
+            updateWeather();      // the first fetch is async, so it lands on a later tick
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -102,6 +104,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ambient.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) ->
                 ambientGlow.setGradientRadius((r - l) * 0.62f));
         greeting = findViewById(R.id.greeting);
+        weatherLabel = findViewById(R.id.weather);
         btnWifi = findViewById(R.id.btnWifi);
 
         grid = findViewById(R.id.grid);
@@ -179,6 +182,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         grid.scheduleLayoutAnimation();
         updateGreeting();
         updateWifiLabel();
+        updateWeather();
         handler.postDelayed(minuteTick, MINUTE_MS);
 
         // Return to the tile we left from, or the first one.
@@ -353,6 +357,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         else if (hour < 22) res = R.string.good_evening;
         else res = R.string.good_night;
         greeting.setText(res);
+    }
+
+    /**
+     * Today's weather beside the date. The fetch is shared with the screensaver and throttles
+     * itself to once every 30 minutes, so asking on every resume costs nothing. The label stays
+     * hidden until there is something real to show.
+     */
+    private void updateWeather() {
+        BriefFetcher.refreshIfStale(this);
+        BriefFetcher.Weather wx = BriefFetcher.weather;
+        if (wx == null) {
+            weatherLabel.setVisibility(View.GONE);
+            return;
+        }
+        weatherLabel.setText(wx.temp + "\u00B0  " + wx.condition);
+        weatherLabel.setVisibility(View.VISIBLE);
     }
 
     /** Shows the Wi-Fi network name on the button when we can read it, otherwise the connection type. */
