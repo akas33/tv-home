@@ -12,6 +12,7 @@
     .\windows\tv.ps1 restore <list.txt>         undo it and bring the stock launcher back
     .\windows\tv.ps1 install                    build and install the launcher + screensaver
     .\windows\tv.ps1 screensaver [preview]      select the Ambient screensaver (preview starts it now)
+    .\windows\tv.ps1 shot                       save a screenshot of the TV to shot.png
     .\windows\tv.ps1 lockdown                   turn TV debugging back off when you are finished
     .\windows\tv.ps1 chatid <bot token>         list the Telegram chat IDs allowed on the TV board
     .\windows\tv.ps1 brief "line 1" "line 2"    optional: send your own lines to the screensaver
@@ -268,9 +269,12 @@ switch ($Cmd) {
             "pm grant com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION",
             # lets the board draw its banner over Netflix; Android TV has no screen to grant this
             "appops set com.gathin.tvhome SYSTEM_ALERT_WINDOW allow",
-            "cmd package set-home-activity --user 0 com.gathin.tvhome",
+            # set-home-activity wants a full component on Android 9, not just the package name
+            "cmd package set-home-activity --user 0 com.gathin.tvhome/.MainActivity",
             "pm disable-user --user 0 $StockLauncher",
-            "am start-foreground-service -n com.gathin.tvhome/.BoardService")
+            # BoardService is not exported, so the shell cannot start it directly; launching the
+            # home screen starts it, which is what happens on every boot anyway
+            "am start -n com.gathin.tvhome/.MainActivity")
         ($cmds -join "`n") | & $Py -I ..\tools\tv.py --batch
         Write-Host "Installed. Press Home on the remote to see it."
         Write-Host "Family board page: http://$($env:TV_HOST):8080  (open it on a phone on your Wi-Fi)"
@@ -320,6 +324,19 @@ switch ($Cmd) {
         Write-Host "Done. Press Home on the remote: you should get the Google TV home screen, no Xiaomi ads."
         Write-Host "If anything looks wrong: .\windows\tv.ps1 restore $list"
         Write-Host "When you are happy, close the door you opened: .\windows\tv.ps1 lockdown"
+    }
+    "shot" {
+        # Grab what is on the TV right now, so Claude can look at it instead of guessing.
+        Need-Venv
+        $out = Join-Path $Repo "shot.png"
+        & $Py -I tools\tv.py "screencap -p /sdcard/tvshot.png" | Out-Null
+        & $Py -I tools\tv.py --pull /sdcard/tvshot.png "$out"
+        & $Py -I tools\tv.py "rm -f /sdcard/tvshot.png" | Out-Null
+        if (Test-Path $out) {
+            Write-Host "Saved $out ($([math]::Round((Get-Item $out).Length/1KB)) KB). Tell Claude it is ready."
+        } else {
+            Write-Host "Screenshot failed - is the TV awake and USB debugging on?"
+        }
     }
     "lockdown" {
         # Network ADB is the biggest hole this project opens: anything on your Wi-Fi can reach
