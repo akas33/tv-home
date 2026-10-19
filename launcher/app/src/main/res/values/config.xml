@@ -52,6 +52,12 @@
          button so anything on screen can be wiped from a phone. Code: upload_pin in secrets.xml. -->
     <integer name="upload_port">8080</integer>
 
+    <!-- The board runs a small always-on service: the upload page, the mail check and the banner
+         over other apps. It is the only thing this launcher leaves running. Set to false if you
+         would rather have the memory back on a 1 GB TV; the screensaver, clock, weather, news and
+         Inputs menu all carry on working without it. -->
+    <bool name="board_enabled">true</bool>
+
     <!-- FAMILY BOARD, way 2: email, for sending from outside the house with nothing installed.
          Mailbox, password and allowed senders live in secrets.xml. -->
     <string name="mail_host" translatable="false">imap.gmail.com</string>

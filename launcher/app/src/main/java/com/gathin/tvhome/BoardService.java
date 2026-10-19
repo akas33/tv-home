@@ -34,6 +34,7 @@ public class BoardService extends Service {
     /** Starts the service if it isn't already running. Safe to call repeatedly. */
     static void ensureRunning(Context context) {
         if (instance != null) return;
+        if (!context.getResources().getBoolean(R.bool.board_enabled)) return;
         try {
             Intent i = new Intent(context.getApplicationContext(), BoardService.class);
             context.getApplicationContext().startForegroundService(i);

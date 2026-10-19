@@ -266,7 +266,6 @@ switch ($Cmd) {
         $cmds = @(
             "pm install -r /data/local/tmp/tvhome.apk",
             "rm -f /data/local/tmp/tvhome.apk",
-            "pm grant com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION",
             # lets the board draw its banner over Netflix; Android TV has no screen to grant this
             "appops set com.gathin.tvhome SYSTEM_ALERT_WINDOW allow",
             # set-home-activity wants a full component on Android 9, not just the package name
@@ -330,6 +329,18 @@ switch ($Cmd) {
         # Useful when a port shows up nameless and we need to know why.
         Need-Venv
         & $Py -I tools\tv.py "dumpsys tv_input | grep -iE 'TvInputInfo|mId=|mLabel|customLabel|mType|state' | head -60"
+        Write-Host ""
+        Write-Host "Send the above to Claude."
+    }
+    "health" {
+        # Is the TV short of memory, and is this launcher a meaningful part of it?
+        Need-Venv
+        Run-Batch @(
+            "cat /proc/meminfo | grep -E 'MemTotal|MemFree|MemAvailable'",
+            "dumpsys meminfo com.gathin.tvhome | grep -E 'TOTAL|Native Heap|Dalvik Heap' | head -4",
+            "dumpsys meminfo | grep -A 14 'Total PSS by process' ",
+            "dumpsys activity services com.gathin.tvhome | grep -cE 'ServiceRecord'"
+        )
         Write-Host ""
         Write-Host "Send the above to Claude."
     }
