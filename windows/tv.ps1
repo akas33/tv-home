@@ -199,6 +199,10 @@ switch ($Cmd) {
     }
     "install" {
         Need-Venv
+        # Always come back to where the user started, even on failure or Ctrl+C: otherwise they are
+        # left in launcher\ where ".\windows\tv.ps1" no longer resolves.
+        $startLocation = Get-Location
+        try {
         Set-Location (Join-Path $Repo "launcher")
         # secrets.xml holds passwords and tokens and is never committed; start it from the template.
         $secrets = "app\src\main\res\values\secrets.xml"
@@ -230,10 +234,15 @@ switch ($Cmd) {
         $dist = Join-Path $Repo "gradle-$gradleVer-bin.zip"
         if (-not (Test-Path $dist)) {
             Write-Host "Fetching Gradle $gradleVer once (about 130 MB, resumes if the line drops)..."
+            Write-Host "  (leave this window alone until it finishes; Ctrl+C cancels the download)"
             try {
                 Import-Module BitsTransfer -ErrorAction Stop
+                # clear any job a previous Ctrl+C left behind, which would otherwise block this one
+                Get-BitsTransfer -ErrorAction SilentlyContinue |
+                    Where-Object { $_.DisplayName -eq "Gradle $gradleVer" } |
+                    Remove-BitsTransfer -ErrorAction SilentlyContinue
                 Start-BitsTransfer -Source "https://services.gradle.org/distributions/gradle-$gradleVer-bin.zip" `
-                                   -Destination $dist -Description "Gradle $gradleVer"
+                                   -Destination $dist -Description "Gradle $gradleVer" -DisplayName "Gradle $gradleVer"
             } catch {
                 Invoke-WebRequest -Uri "https://services.gradle.org/distributions/gradle-$gradleVer-bin.zip" `
                                   -OutFile $dist -UseBasicParsing
@@ -265,6 +274,9 @@ switch ($Cmd) {
         ($cmds -join "`n") | & $Py -I ..\tools\tv.py --batch
         Write-Host "Installed. Press Home on the remote to see it."
         Write-Host "Family board page: http://$($env:TV_HOST):8080  (open it on a phone on your Wi-Fi)"
+        } finally {
+            Set-Location $startLocation
+        }
     }
     "screensaver" {
         $lines = @(
