@@ -185,6 +185,15 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         });
         items.clear();
         items.addAll(fresh);
+        if (Log.isLoggable(TAG, Log.INFO)) {
+            StringBuilder order = new StringBuilder("grid order: ");
+            for (int i = dockSize; i < Math.min(items.size(), dockSize + 6); i++) {
+                Entry e = items.get(i);
+                long when = used.getLong(e.pkg, 0L);
+                order.append(e.label).append(when == 0 ? "(never) " : "(" + (System.currentTimeMillis() - when) / 1000 + "s ago) ");
+            }
+            Log.i(TAG, order.toString());
+        }
         notifyDataSetChanged();
     }
 
