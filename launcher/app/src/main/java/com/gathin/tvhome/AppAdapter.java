@@ -12,6 +12,7 @@ import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Rect;
 import android.content.SharedPreferences;
+import android.util.Log;
 import android.graphics.drawable.Drawable;
 import android.media.tv.TvContract;
 import android.media.tv.TvInputInfo;
@@ -83,6 +84,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     /** Put "input:Jio" in dock_apps to pin an input beside the apps. */
     static final String DOCK_INPUT_PREFIX = "input:";
     private static final String USAGE_PREFS = "tile_usage";
+    private static final String TAG = "TvHome";
 
     static final float FOCUS_SCALE = 1.10f;
 
@@ -113,17 +115,24 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
      */
     private void addInputTiles(List<Entry> fresh) {
         TvInputManager tim = (TvInputManager) ctx.getSystemService(Context.TV_INPUT_SERVICE);
-        if (tim == null) return;
+        if (tim == null) {
+            Log.w(TAG, "no TvInputManager, cannot pin inputs");
+            return;
+        }
         for (String fav : favourites) {
             if (!fav.startsWith(DOCK_INPUT_PREFIX)) continue;
             String wanted = fav.substring(DOCK_INPUT_PREFIX.length()).trim();
+            boolean matched = false;
             for (TvInputInfo info : tim.getTvInputList()) {
                 if (!info.isPassthroughInput()) continue;
                 String name = TvInputs.label(ctx, info);
+                Log.i(TAG, "input \"" + name + "\" (" + info.getId() + ") vs wanted \"" + wanted + "\"");
                 if (!name.equalsIgnoreCase(wanted)) continue;
                 fresh.add(new Entry(name, info.getId(), ctx.getDrawable(R.drawable.ic_input)));
+                matched = true;
                 break;
             }
+            if (!matched) Log.w(TAG, "no input matched \"" + wanted + "\"");
         }
     }
 
