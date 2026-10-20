@@ -122,18 +122,36 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         for (String fav : favourites) {
             if (!fav.startsWith(DOCK_INPUT_PREFIX)) continue;
             String wanted = fav.substring(DOCK_INPUT_PREFIX.length()).trim();
-            boolean matched = false;
-            for (TvInputInfo info : tim.getTvInputList()) {
-                if (!info.isPassthroughInput()) continue;
-                String name = TvInputs.label(ctx, info);
-                Log.i(TAG, "input \"" + name + "\" (" + info.getId() + ") vs wanted \"" + wanted + "\"");
-                if (!name.equalsIgnoreCase(wanted)) continue;
-                fresh.add(new Entry(name, info.getId(), ctx.getDrawable(R.drawable.ic_input)));
-                matched = true;
-                break;
+            TvInputInfo hit = findInput(tim, wanted);
+            if (hit == null) {
+                Log.w(TAG, "no input matched \"" + wanted + "\"");
+                continue;
             }
-            if (!matched) Log.w(TAG, "no input matched \"" + wanted + "\"");
+            // the tile carries the name from config, not the TV's wordier one
+            fresh.add(new Entry(wanted, hit.getId(), ctx.getDrawable(R.drawable.ic_input)));
         }
+    }
+
+    /**
+     * An exact name wins; failing that, one that merely contains it. TVs name a port whatever the
+     * owner typed into settings - "Jio setup" for a box you would call Jio - so asking for an exact
+     * match means retyping config to match the TV instead of the other way round.
+     */
+    private TvInputInfo findInput(TvInputManager tim, String wanted) {
+        String want = normalise(wanted);
+        TvInputInfo loose = null;
+        for (TvInputInfo info : tim.getTvInputList()) {
+            if (!info.isPassthroughInput()) continue;
+            String name = normalise(TvInputs.label(ctx, info));
+            Log.i(TAG, "input \"" + name + "\" (" + info.getId() + ") vs wanted \"" + want + "\"");
+            if (name.equals(want)) return info;
+            if (loose == null && (name.contains(want) || want.contains(name))) loose = info;
+        }
+        return loose;
+    }
+
+    private static String normalise(String s) {
+        return s == null ? "" : s.toLowerCase().replaceAll("[^a-z0-9]", "");
     }
 
     void reload() {
