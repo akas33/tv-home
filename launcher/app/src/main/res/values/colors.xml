@@ -18,14 +18,16 @@
              #FF6FD3C7  teal        #FFE9C46A  gold (now)
              #FF9DB4FF  soft blue   #FFFFFFFF  plain white
              #FFFF2E63  hot pink    #FFF4A261  amber -->
-    <color name="accent">#FFE9C46A</color>
+    <color name="accent">#FFFFFFFF</color>
+    <!-- Default is plain white: with a photograph behind everything, one colour everywhere reads
+         calmest, and the picture supplies the colour. Paste a line above in to try another. -->
 
     <!-- The name under an app tile. -->
-    <color name="app_name">#FFCBB89A</color>
+    <color name="app_name">#FFE6E6E6</color>
 
     <!-- The bento panes: weather, clock, calendar. -->
-    <color name="tile_glass_top">#3827314F</color>
-    <color name="tile_glass_bottom">#A6080B18</color>
+    <color name="tile_glass_top">#4D1C2238</color>
+    <color name="tile_glass_bottom">#C2060810</color>
     <color name="tile_edge">#26FFFFFF</color>
 
     <!-- Text inside the panes. -->
@@ -35,5 +37,5 @@
 
     <!-- The greeting, and a festival day's greeting. -->
     <color name="greeting">#FFFFFFFF</color>
-    <color name="greeting_festival">#FFE9C46A</color>
+    <color name="greeting_festival">#FFFFFFFF</color>
 </resources>

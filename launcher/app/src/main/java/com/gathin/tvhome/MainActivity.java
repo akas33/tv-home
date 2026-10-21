@@ -478,13 +478,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             TextView at = new TextView(this);
             at.setText(h.at);
             at.setTextSize(11);
-            at.setTextColor(0x99FFFFFF);
+            at.setTextColor(getResources().getColor(R.color.text_faint));
             at.setSingleLine(true);
 
             TextView deg = new TextView(this);
             deg.setText(h.temp + "\u00B0");
             deg.setTextSize(15);
-            deg.setTextColor(0xFFFFFFFF);
+            deg.setTextColor(getResources().getColor(R.color.text_bright));
+            deg.setTypeface(null, android.graphics.Typeface.BOLD);
             deg.setSingleLine(true);
             deg.setPadding(0, (int) (3 * density), 0, 0);
 
