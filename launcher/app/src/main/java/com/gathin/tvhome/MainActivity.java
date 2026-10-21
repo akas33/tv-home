@@ -66,7 +66,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView greeting;
     private TextView quote;
     private View weatherTile, airBlock;
-    private TextView weatherPlace, weatherTemp, weatherSub, airNumber, airWord, tithi;
+    private TextView weatherTemp, weatherSub, airNumber, airWord, tithi;
     private LinearLayout hourly;
     private TextView btnWifi;
     private SpringAnimation springX, springY;
@@ -111,7 +111,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         greeting = findViewById(R.id.greeting);
         quote = findViewById(R.id.quote);
         weatherTile = findViewById(R.id.weatherTile);
-        weatherPlace = findViewById(R.id.weatherPlace);
         weatherTemp = findViewById(R.id.weatherTemp);
         weatherSub = findViewById(R.id.weatherSub);
         hourly = findViewById(R.id.hourly);
@@ -442,9 +441,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         BriefFetcher.refreshIfStale(this);
         BriefFetcher.Weather wx = BriefFetcher.weather;
         if (wx != null) {
-            weatherPlace.setText(wx.place.isEmpty() ? wx.condition : wx.place.toUpperCase());
             weatherTemp.setText(wx.temp + "\u00B0");
-            String sub = wx.condition + "    H " + wx.high + "\u00B0   L " + wx.low + "\u00B0";
+            // The place name is gone (you know which city you are in) and so is the high/low:
+            // between them they were most of the pane's width.
+            String sub = wx.condition;
             if (wx.rainChance >= 0) sub = sub + "    \u2614 " + wx.rainChance + "%";
             weatherSub.setText(sub);
             fillHourly();
