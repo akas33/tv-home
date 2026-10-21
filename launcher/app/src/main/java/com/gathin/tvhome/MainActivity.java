@@ -84,7 +84,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             updateWeather();      // the first fetch is async, so it lands on a later tick
             updatePanchang();
             updateQuote();
-            root.setBackground(Sky.background(this));   // cheap, and catches the turn of the hour
+            // MainActivity.this, not this: we are inside the Runnable.
+            root.setBackground(Sky.background(MainActivity.this));
             handler.postDelayed(this, MINUTE_MS);
         }
     };
