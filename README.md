@@ -6,9 +6,9 @@ for the family to put photos on the screen from their phones.**
 Built and tested on a Mi TV 4A Pro (MiTV-AXSO0, Android 9). Everything is reversible: packages are
 disabled rather than uninstalled, and one command puts the TV back as it was.
 
-| Stock home screen | After |
+| The home screen | The screensaver |
 |---|---|
-| ![Stock Google TV home with a sponsored ad](docs/stock-home.jpg) | ![tvOS-style launcher](docs/new-home.jpg) |
+| ![The home screen: time, date and the Hindu date in one pane, weather and air quality in another, a line of scripture, and app tiles over a picture](docs/home.png) | ![The ambient screensaver: a large clock over a sky that follows the hour, with the weather and a headline](docs/screensaver.png) |
 
 ## What it does
 
