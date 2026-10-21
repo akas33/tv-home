@@ -372,7 +372,8 @@ switch ($Cmd) {
         # The TV shows one a day, in name order, and notices new ones within a minute - nothing to
         # rebuild. Run it with no path to take them all off again.
         Need-Venv
-        $remote = "/sdcard/tvhome/wallpapers"
+        # The app's own folder: readable by the launcher with no storage permission at all.
+        $remote = "/sdcard/Android/data/com.gathin.tvhome/files/wallpapers"
         if (-not ($Rest -and $Rest[0])) {
             & $Py -I tools\tv.py "rm -rf $remote" | Out-Null
             Write-Host "Pictures removed. The home screen goes back to the colour of the hour."

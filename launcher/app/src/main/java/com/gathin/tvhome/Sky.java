@@ -37,11 +37,11 @@ final class Sky {
 
     /** top, middle, bottom of the background gradient, for each band of the day. */
     private static final int[][] BANDS = {
-            {0xFF07091C, 0xFF0D1030, 0xFF161A42},   // 0  night
-            {0xFF0A1330, 0xFF14204A, 0xFF1E2A5C},   // 5  morning
-            {0xFF0B1636, 0xFF152354, 0xFF203066},   // 11 midday
-            {0xFF1A0E34, 0xFF2E1348, 0xFF461B4E},   // 17 evening
-            {0xFF07091C, 0xFF0D1030, 0xFF161A42},   // 22 night again
+            {0xFF000000, 0xFF050507, 0xFF0A0A0E},   // 0  night
+            {0xFF030305, 0xFF08080C, 0xFF101014},   // 5  morning
+            {0xFF030304, 0xFF090909, 0xFF111113},   // 11 midday
+            {0xFF040306, 0xFF0A080E, 0xFF121018},   // 17 evening
+            {0xFF000000, 0xFF050507, 0xFF0A0A0E},   // 22 night again
     };
     private static final int[] STARTS = {0, 5, 11, 17, 22};
 
@@ -95,9 +95,9 @@ final class Sky {
 
     /** Today's picture, decoded small, or null when the folder has nothing we can read. */
     private static Bitmap today(Context context) {
-        String dir = context.getString(R.string.wallpaper_dir).trim();
-        if (dir.isEmpty()) return null;
-        File[] pictures = list(new File(dir));
+        File folder = folder(context);
+        if (folder == null) return null;
+        File[] pictures = list(folder);
         if (pictures.length == 0) return null;
 
         // Sorted by name, so the order is stable, and keyed to the date, so it holds all day.
@@ -123,6 +123,20 @@ final class Sky {
             Log.w(TAG, "wallpaper failed: " + pick, t);
             return null;
         }
+    }
+
+    /**
+     * Where the pictures live. Blank in config.xml, which is the normal case, means the app's own
+     * folder on the TV - /sdcard/Android/data/com.gathin.tvhome/files/wallpapers - which this app
+     * may read WITHOUT holding any storage permission. That matters twice over: asking for
+     * permission to read all of /sdcard would let this launcher read every photo and download on
+     * the TV, which it has no business doing, and on Android 9 the read simply fails without it,
+     * which is why pictures put anywhere else never appeared.
+     */
+    private static File folder(Context context) {
+        String dir = context.getString(R.string.wallpaper_dir).trim();
+        if (!dir.isEmpty()) return new File(dir);
+        return context.getExternalFilesDir("wallpapers");
     }
 
     /** Readable picture files in the folder, by name. A single file at that path also works. */

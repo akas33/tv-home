@@ -297,17 +297,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * ambient tint, which still follows the focused app.
      */
     private void showHero(int position, float dockTopInRoot) {
-        int color = adapter.ambientColorAt(position);
-        if (!heroShown) {
-            setAmbient(color);
-            ambient.animate().alpha(1f).setDuration(600).start();
-            heroShown = true;
-        } else if (color != ambientColor) {
-            ambient.animate().alpha(0.35f).setDuration(200).withEndAction(() -> {
-                setAmbient(color);
-                ambient.animate().alpha(1f).setDuration(500).start();
-            }).start();
-        }
+        // Nothing. The screen used to take on the colour of whatever app you were standing on -
+        // red for Netflix, blue for Prime - which meant the background never settled. It stays
+        // black; the highlight behind the tile is the only thing that says where you are.
     }
 
     private void setAmbient(int color) {

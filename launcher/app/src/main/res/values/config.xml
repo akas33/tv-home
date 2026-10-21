@@ -44,13 +44,18 @@
          Change this one word and reinstall to see the difference; nothing else has to change. -->
     <string name="tile_style" translatable="false">icon</string>
 
-    <!-- Pictures behind the home screen. Put as many as you like in this folder on the TV and it
-         shows a different one each day, in name order, round and round:
+    <!-- Pictures behind the home screen. Put as many as you like on the TV and it shows a
+         different one each day, in name order, round and round:
              .\windows\tv.ps1 wallpaper C:\path\to\your\folder
              .\windows\tv.ps1 wallpaper C:\path\to\one-picture.jpg
          Add more whenever you want - the TV notices within a minute and never needs rebuilding.
-         Run 'wallpaper' with no path to clear them. Leave this blank for no pictures at all. -->
-    <string name="wallpaper_dir" translatable="false">/sdcard/tvhome/wallpapers</string>
+         Run 'wallpaper' with no path to remove them.
+
+         Leave this BLANK, which is the normal case: the pictures then live in this app's own
+         folder on the TV, which it can read without holding any permission over your storage.
+         Set a path here only if you keep them somewhere else, and note that anywhere outside the
+         app's own folder needs a storage permission this app deliberately does not ask for. -->
+    <string name="wallpaper_dir" translatable="false"></string>
 
     <!-- Greet in Hindi on the home screen. Set false if your TV has no Devanagari font and the
          greeting shows as boxes. The screensaver keeps English either way. -->
