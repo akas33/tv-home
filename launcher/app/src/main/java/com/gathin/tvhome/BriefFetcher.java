@@ -31,7 +31,7 @@ final class BriefFetcher {
     private static final long RETRY_MS = 5L * 60 * 1000;
     private static final int MAX_HEADLINES = 6;
     private static final int MAX_IMAGES = 3;        // only the first few carry a picture
-    private static final int HOURS_SHOWN = 5;       // how far the hourly strip reaches
+    private static final int HOURS_SHOWN = 4;       // how far the hourly strip reaches
 
     /** Today's weather. Null until the first successful fetch. */
     static final class Weather {

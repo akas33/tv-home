@@ -23,9 +23,12 @@
     <string name="good_afternoon_hi">नमस्ते</string>
     <string name="good_evening_hi">शुभ संध्या</string>
     <string name="good_night_hi">शुभ रात्रि</string>
-    <!-- Festival days replace the greeting. %1$s is the festival, %2$s is family_name. -->
-    <string name="festival_greeting">Happy %1$s</string>
-    <string name="festival_greeting_family">Happy %1$s, %2$s</string>
+    <!-- Festival days replace the greeting. %1$s is the festival, %2$s is family_name from
+         config.xml. Worded as a wish to whoever is standing in front of the TV, signed by the
+         house, so a guest reads it as being meant for them too. Change the wording freely -
+         write it in Hindi if you would rather, the TV does not mind which. -->
+    <string name="festival_greeting">%1$s की हार्दिक शुभकामनाएँ</string>
+    <string name="festival_greeting_family">%1$s की हार्दिक शुभकामनाएँ \u2014 %2$s</string>
     <string name="aqi">AQI</string>
     <string name="aqi_label">AIR QUALITY</string>
     <string name="quote_no_player">No app on this TV can play that link</string>
