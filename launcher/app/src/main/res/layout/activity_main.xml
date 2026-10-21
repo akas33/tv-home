@@ -144,9 +144,9 @@
                             android:format12Hour="a"
                             android:format24Hour=""
                             android:textColor="@color/text_bright"
-                            android:textSize="18sp"
+                            android:textSize="22sp"
                             android:fontFamily="@font/outfit"
-                            android:fontVariationSettings="'wght' 500"
+                            android:fontVariationSettings="'wght' 600"
                             android:includeFontPadding="false" />
                     </LinearLayout>
 
@@ -156,7 +156,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:textColor="@color/text_soft"
-                        android:textSize="13sp"
+                        android:textSize="15sp"
                         android:fontFamily="@font/outfit"
                         android:fontVariationSettings="'wght' 600"
                         android:singleLine="true" />
@@ -266,7 +266,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="6dp"
                             android:textColor="@color/text_soft"
-                            android:textSize="12sp"
+                            android:textSize="14sp"
                             android:fontFamily="@font/outfit"
                             android:fontVariationSettings="'wght' 500"
                             android:singleLine="true"
@@ -287,9 +287,9 @@
                             android:layout_height="wrap_content"
                             android:text="@string/aqi"
                             android:textColor="@color/text_soft"
-                            android:textSize="12sp"
+                            android:textSize="14sp"
                             android:fontFamily="@font/outfit"
-                            android:fontVariationSettings="'wght' 500" />
+                            android:fontVariationSettings="'wght' 600" />
 
                         <TextView
                             android:id="@+id/airNumber"
@@ -310,9 +310,9 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="5dp"
                             android:textColor="@color/text_soft"
-                            android:textSize="12sp"
+                            android:textSize="14sp"
                             android:fontFamily="@font/outfit"
-                            android:fontVariationSettings="'wght' 500"
+                            android:fontVariationSettings="'wght' 600"
                             android:singleLine="true" />
                     </LinearLayout>
                 </LinearLayout>
@@ -332,12 +332,11 @@
             android:id="@+id/quote"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:layout_marginStart="8dp"
-            android:paddingStart="14dp"
-            android:paddingEnd="18dp"
-            android:paddingTop="7dp"
-            android:paddingBottom="9dp"
+            android:layout_marginTop="12dp"
+            android:paddingStart="26dp"
+            android:paddingEnd="26dp"
+            android:paddingTop="13dp"
+            android:paddingBottom="15dp"
             android:background="@drawable/quote_bg"
             android:textColor="@color/accent"
             android:textSize="18sp"

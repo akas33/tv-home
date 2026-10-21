@@ -1,24 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The line of the day. Nothing is drawn around it until the remote lands on it, so the home screen
-  stays calm; once focused it gets the same pane as the corner tiles so it is obvious OK will do
-  something.
+  The mantra sits in a pane of its own, the same shape and colour as the time pane above it, so it
+  belongs to the screen instead of floating on bare photograph. Brightens when the remote lands on
+  it, which is the hint that OK will play it.
 -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_focused="true">
         <shape android:shape="rectangle">
             <gradient
                 android:angle="270"
-                android:startColor="#2EFFFFFF"
-                android:endColor="#14FFFFFF" />
-            <stroke android:width="1dp" android:color="#59E9C46A" />
-            <corners android:radius="14dp" />
+                android:startColor="#73FFFFFF"
+                android:endColor="#40FFFFFF" />
+            <stroke android:width="1dp" android:color="#8CFFFFFF" />
+            <corners android:radius="26dp" />
         </shape>
     </item>
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#00000000" />
-            <corners android:radius="14dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="@color/tile_glass_top"
+                android:endColor="@color/tile_glass_bottom" />
+            <stroke android:width="1dp" android:color="@color/tile_edge" />
+            <corners android:radius="26dp" />
         </shape>
     </item>
 </selector>

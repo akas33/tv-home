@@ -30,10 +30,11 @@
     <color name="tile_glass_bottom">#C2060810</color>
     <color name="tile_edge">#26FFFFFF</color>
 
-    <!-- Text inside the panes. -->
+    <!-- Text inside the panes. All three are white: grey text over a photograph reads as faint
+         from across a room no matter how heavy it is set. They differ in weight and size instead. -->
     <color name="text_bright">#FFFFFFFF</color>
-    <color name="text_soft">#CCFFFFFF</color>
-    <color name="text_faint">#8CFFFFFF</color>
+    <color name="text_soft">#FFFFFFFF</color>
+    <color name="text_faint">#E6FFFFFF</color>
 
     <!-- The greeting, and a festival day's greeting. -->
     <color name="greeting">#FFFFFFFF</color>
