@@ -5,6 +5,14 @@
     android:layout_height="match_parent"
     android:background="#FF000000">
 
+    <!-- A soft light that drifts slowly across the background, so the screen is never quite still.
+         One view, one translation animation, nothing redrawn: cheap enough for a 1 GB TV. -->
+    <View
+        android:id="@+id/drift"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no" />
+
     <!-- Ambient glow in the colour of the focused dock app. -->
     <View
         android:id="@+id/ambient"

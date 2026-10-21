@@ -17,6 +17,7 @@
         <item>com.amazon.amazonvideo.livingroom</item>
         <item>com.google.android.youtube.tv</item>
         <item>in.startv.hotstar</item>
+        <item>com.sonyliv</item>
     </string-array>
 
     <!-- Apps never shown as tiles (e.g. the Live TV app, which the Inputs menu already covers). -->
@@ -31,7 +32,7 @@
     <string name="live_tv_package" translatable="false">com.droidlogic.droidlivetv</string>
 
     <!-- Tiles per row in the grid; the dock always has this many slots. -->
-    <integer name="columns">4</integer>
+    <integer name="columns">6</integer>
 
     <!-- How an app tile is drawn. Apps ship their own artwork and no two agree - Netflix is a white
          box, Prime a solid blue one - which is why an untouched row of them looks like a jumble.
@@ -41,7 +42,7 @@
            icon    the artwork is ignored: the app's icon over its name, the most uniform of the
                    three, and closest to an Apple TV row.
          Change this one word and reinstall to see the difference; nothing else has to change. -->
-    <string name="tile_style" translatable="false">inset</string>
+    <string name="tile_style" translatable="false">icon</string>
 
     <!-- A picture behind the home screen. Put any photo on the TV at this path and it becomes the
          background, under a scrim dark enough to keep the clock and app names readable:

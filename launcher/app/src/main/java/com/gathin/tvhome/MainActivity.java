@@ -122,6 +122,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // The background follows the time of day rather than sitting on flat black. Set behind the
         // ambient glow, which still tints it with the focused app's colour.
         root.setBackground(Sky.background(this));
+        startDrift();
 
         grid = findViewById(R.id.grid);
         grid.setLayoutManager(new GridLayoutManager(this, COLUMNS));
@@ -137,7 +138,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         grid.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
             int h = b - t;
             int dockRow = (int) ((124 + 6 + 12) * density);   // item height plus DockDecoration offsets
-            int want = Math.max(0, h - dockRow - (int) (30 * density));
+            // Sit the dock off the bottom rather than on it. Tiles are smaller now, so pinning the
+            // row to the floor left a dead band across the middle of the screen; lifting it closes
+            // that up and lets the second row show, which is also the hint that the grid scrolls.
+            int want = Math.max(0, h - dockRow - (int) (126 * density));
             if (grid.getPaddingTop() != want) {
                 grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
             }
@@ -377,6 +381,38 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         });
         grid.smoothScrollToPosition(pos);
+    }
+
+    /**
+     * A pale light that wanders across the background on a slow loop, so the screen has some life
+     * when nothing is happening. It is one view with a radial gradient, moved with translation
+     * only: no redraw per frame, and it runs on a hardware layer, which is what keeps it affordable
+     * on a TV with this little memory.
+     */
+    private void startDrift() {
+        View drift = findViewById(R.id.drift);
+        GradientDrawable glow = new GradientDrawable();
+        glow.setGradientType(GradientDrawable.RADIAL_GRADIENT);
+        glow.setGradientCenter(0.5f, 0.42f);
+        glow.setColors(new int[]{0x1AFFFFFF, 0x0DFFFFFF, 0x00FFFFFF});
+        drift.setBackground(glow);
+        drift.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        drift.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) ->
+                glow.setGradientRadius((r - l) * 0.55f));
+
+        float reach = 120 * density;
+        android.animation.ObjectAnimator x =
+                android.animation.ObjectAnimator.ofFloat(drift, View.TRANSLATION_X, -reach, reach);
+        android.animation.ObjectAnimator y =
+                android.animation.ObjectAnimator.ofFloat(drift, View.TRANSLATION_Y, reach * 0.4f, -reach * 0.4f);
+        x.setDuration(29000);
+        y.setDuration(37000);        // a different period, so the path never repeats exactly
+        for (android.animation.ObjectAnimator a : new android.animation.ObjectAnimator[]{x, y}) {
+            a.setRepeatCount(android.animation.ObjectAnimator.INFINITE);
+            a.setRepeatMode(android.animation.ObjectAnimator.REVERSE);
+            a.setInterpolator(new android.view.animation.AccelerateDecelerateInterpolator());
+            a.start();
+        }
     }
 
     // ---- top bar ---------------------------------------------------------------------------------

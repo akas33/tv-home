@@ -29,6 +29,12 @@
     <string name="aqi">AQI</string>
     <string name="quote_no_player">No app on this TV can play that link</string>
 
+    <!-- Hold OK on an app tile. -->
+    <string name="pin_to_dock">Add to the bottom row</string>
+    <string name="unpin_from_dock">Remove from the bottom row</string>
+    <string name="app_info">App info</string>
+    <string name="dock_full">The bottom row holds %1$d. Remove one first.</string>
+
     <string name="ethernet">Ethernet</string>
     <string name="offline">Offline</string>
     <string name="screensaver_name">Ambient</string>

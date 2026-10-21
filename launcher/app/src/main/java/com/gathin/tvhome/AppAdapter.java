@@ -1,5 +1,6 @@
 package com.gathin.tvhome;
 
+import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
@@ -84,6 +85,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     /** Put "input:Jio" in dock_apps to pin an input beside the apps. */
     static final String DOCK_INPUT_PREFIX = "input:";
     private static final String USAGE_PREFS = "tile_usage";
+    private static final String PIN_PREFS = "tile_pins";
+    private static final String PIN_KEY = "dock";
     private static final String TAG = "TvHome";
 
     static final float FOCUS_SCALE = 1.10f;
@@ -91,8 +94,10 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     private final Context ctx;
     private final TileListener listener;
     private final int dockSize;
-    /** Dock order (res/values/config.xml, dock_apps). */
-    private final List<String> favourites;
+    /** Dock order from res/values/config.xml (dock_apps), before anything pinned on the TV. */
+    private final List<String> configFavourites;
+    /** configFavourites plus whatever has been pinned from the TV. Rebuilt on every reload. */
+    private List<String> favourites;
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
     private final Set<String> hidden;
     private final List<Entry> items = new ArrayList<>();
@@ -105,7 +110,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         this.ctx = ctx;
         this.listener = listener;
         this.dockSize = dockSize;
-        this.favourites = Arrays.asList(ctx.getResources().getStringArray(R.array.dock_apps));
+        this.configFavourites = Arrays.asList(ctx.getResources().getStringArray(R.array.dock_apps));
+        this.favourites = this.configFavourites;
         this.hidden = new HashSet<>(Arrays.asList(ctx.getResources().getStringArray(R.array.hidden_apps)));
         this.tileStyle = ctx.getString(R.string.tile_style).trim().toLowerCase();
         this.tileInset = Math.round(10 * ctx.getResources().getDisplayMetrics().density);
@@ -161,6 +167,13 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     }
 
     void reload() {
+        // config first, then anything pinned by holding OK on a tile.
+        List<String> dock = new ArrayList<>(configFavourites);
+        for (String p : pinned()) {
+            if (!dock.contains(p)) dock.add(p);
+        }
+        favourites = dock;
+
         PackageManager pm = ctx.getPackageManager();
         Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
@@ -246,15 +259,89 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         }
         h.card.setOnClickListener(v -> launch(e));
         h.card.setOnLongClickListener(v -> {
-            if (e.inputId != null) return true;
-            Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
+            showTileMenu(e);
+            return true;
+        });
+    }
+
+    /**
+     * Hold OK on any app to put it in the dock or take it out again. The dock used to be whatever
+     * config.xml said and nothing else, which meant editing a file on a laptop and reinstalling to
+     * move one app; choices made here are remembered on the TV and added after the config ones.
+     */
+    private void showTileMenu(Entry e) {
+        if (e.inputId != null) return;              // inputs are pinned in config, not from here
+        List<String> pins = pinned();
+        boolean fromConfig = configFavourites.contains(e.pkg);
+        boolean pinnedHere = pins.contains(e.pkg);
+
+        final List<String> labels = new ArrayList<>();
+        final List<Runnable> actions = new ArrayList<>();
+
+        if (pinnedHere) {
+            labels.add(ctx.getString(R.string.unpin_from_dock));
+            actions.add(() -> {
+                List<String> next = pinned();
+                next.remove(e.pkg);
+                savePinned(next);
+                reloadAndRedraw();
+            });
+        } else if (!fromConfig) {
+            labels.add(ctx.getString(R.string.pin_to_dock));
+            actions.add(() -> {
+                if (configFavourites.size() + pins.size() >= dockSize) {
+                    Toast.makeText(ctx, ctx.getString(R.string.dock_full, dockSize),
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
+                List<String> next = pinned();
+                next.add(e.pkg);
+                savePinned(next);
+                reloadAndRedraw();
+            });
+        }
+
+        labels.add(ctx.getString(R.string.app_info));
+        actions.add(() -> {
+            Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.parse("package:" + e.pkg));
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             try {
                 ctx.startActivity(i);
             } catch (ActivityNotFoundException ignored) {
             }
-            return true;
         });
+
+        new AlertDialog.Builder(ctx, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle(e.label)
+                .setItems(labels.toArray(new String[0]),
+                        (d, which) -> actions.get(which).run())
+                .show();
+    }
+
+    private void reloadAndRedraw() {
+        reload();
+        notifyDataSetChanged();
+    }
+
+    /** Apps pinned from the TV itself, in the order they were pinned. */
+    private List<String> pinned() {
+        String raw = ctx.getSharedPreferences(PIN_PREFS, Context.MODE_PRIVATE).getString(PIN_KEY, "");
+        List<String> out = new ArrayList<>();
+        for (String s : raw.split("\n")) {
+            if (!s.trim().isEmpty()) out.add(s.trim());
+        }
+        return out;
+    }
+
+    private void savePinned(List<String> list) {
+        StringBuilder sb = new StringBuilder();
+        for (String s : list) {
+            if (sb.length() > 0) sb.append('\n');
+            sb.append(s);
+        }
+        ctx.getSharedPreferences(PIN_PREFS, Context.MODE_PRIVATE)
+                .edit().putString(PIN_KEY, sb.toString()).apply();
     }
 
     private void launch(Entry e) {
