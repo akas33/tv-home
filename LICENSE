@@ -23,6 +23,7 @@ SOFTWARE.
 
 ---
 
-The Outfit typeface in launcher/app/src/main/res/font/outfit.ttf is copyright
-The Outfit Project Authors and licensed under the SIL Open Font License 1.1,
-see launcher/FONT-LICENSE-OFL.txt.
+The typefaces in launcher/app/src/main/res/font/ - Outfit, Space Grotesk and
+Noto Sans Devanagari - are each licensed under the SIL Open Font License 1.1
+by their respective authors. Their copyright notices and the licence text are
+in launcher/FONT-LICENSE-OFL.txt.

@@ -1,4 +1,11 @@
-Copyright 2021 The Outfit Project Authors (https://github.com/Outfitio/Outfit-Fonts)
+Three typefaces ship in launcher/app/src/main/res/font/, all under this same licence:
+
+  outfit.ttf       Copyright 2021 The Outfit Project Authors
+                   https://github.com/Outfitio/Outfit-Fonts
+  space_grotesk.ttf  Copyright 2020 The Space Grotesk Project Authors
+                   https://github.com/floriankarsten/space-grotesk
+  devanagari.ttf   Noto Sans Devanagari, Copyright 2022 The Noto Project Authors
+                   https://github.com/notofonts/devanagari
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:
