@@ -60,13 +60,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private FrameLayout root;
     private GlassView glass;
     private View ambient;
-    private TextView heroName;
     private GradientDrawable ambientGlow;
     private int ambientColor;
     private boolean heroShown;
     private TextView greeting;
     private TextView quote;
-    private View weatherTile, airTile;
+    private View weatherTile, airBlock;
     private TextView weatherPlace, weatherTemp, weatherSub, airNumber, airWord, tithi;
     private LinearLayout hourly;
     private TextView btnWifi;
@@ -103,7 +102,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         root = findViewById(R.id.root);
         glass = findViewById(R.id.glass);
         ambient = findViewById(R.id.ambient);
-        heroName = findViewById(R.id.heroName);
         ambientGlow = new GradientDrawable();
         ambientGlow.setGradientType(GradientDrawable.RADIAL_GRADIENT);
         ambientGlow.setGradientCenter(0.32f, 0.42f);
@@ -117,7 +115,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weatherTemp = findViewById(R.id.weatherTemp);
         weatherSub = findViewById(R.id.weatherSub);
         hourly = findViewById(R.id.hourly);
-        airTile = findViewById(R.id.airTile);
+        airBlock = findViewById(R.id.airBlock);
         airNumber = findViewById(R.id.airNumber);
         airWord = findViewById(R.id.airWord);
         tithi = findViewById(R.id.tithi);
@@ -213,7 +211,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         glassShown = false;
         glass.setAlpha(0f);
         heroShown = false;
-        heroName.setAlpha(0f);
         ambient.setAlpha(0f);
         adapter.reload();
         grid.scheduleLayoutAnimation();
@@ -294,35 +291,22 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     // ---- top shelf -------------------------------------------------------------------------------
 
+    /**
+     * The big floating app name is gone. Every tile carries its own name under it now, and once
+     * the dock moved up the screen the big one landed on top of the mantra. What is left is the
+     * ambient tint, which still follows the focused app.
+     */
     private void showHero(int position, float dockTopInRoot) {
-        String label = adapter.labelAt(position);
         int color = adapter.ambientColorAt(position);
-        float y = dockTopInRoot - 14 * density - 26 * density - heroName.getHeight();
-        boolean changed = !label.contentEquals(heroName.getText());
-
         if (!heroShown) {
-            heroName.setText(label);
-            heroName.setY(y);
-            heroName.setTranslationX(0f);
-            heroName.animate().alpha(1f).setDuration(260).start();
             setAmbient(color);
             ambient.animate().alpha(1f).setDuration(600).start();
             heroShown = true;
-        } else if (changed) {
-            heroName.animate().alpha(0f).translationX(-12 * density).setDuration(120).withEndAction(() -> {
-                heroName.setText(label);
-                heroName.setY(y);
-                heroName.setTranslationX(12 * density);
-                heroName.animate().alpha(1f).translationX(0f).setDuration(200).start();
+        } else if (color != ambientColor) {
+            ambient.animate().alpha(0.35f).setDuration(200).withEndAction(() -> {
+                setAmbient(color);
+                ambient.animate().alpha(1f).setDuration(500).start();
             }).start();
-            if (color != ambientColor) {
-                ambient.animate().alpha(0.35f).setDuration(200).withEndAction(() -> {
-                    setAmbient(color);
-                    ambient.animate().alpha(1f).setDuration(500).start();
-                }).start();
-            }
-        } else {
-            heroName.setY(y);
         }
     }
 
@@ -337,7 +321,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void hideHero() {
         if (!heroShown) return;
         heroShown = false;
-        heroName.animate().alpha(0f).setDuration(160).start();
         ambient.animate().alpha(0f).setDuration(300).start();
     }
 
@@ -472,7 +455,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             airNumber.setText(String.valueOf(air.aqi));
             airNumber.setTextColor(air.colour);
             airWord.setText(air.word);
-            airTile.setVisibility(View.VISIBLE);
+            airBlock.setVisibility(View.VISIBLE);
         }
     }
 
