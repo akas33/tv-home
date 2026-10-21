@@ -16,9 +16,19 @@ disabled rather than uninstalled, and one command puts the TV back as it was.
 installer, the "TV Manager" cleaner and a pile of preloads - 26 packages in all, each one checked
 against the TV's own package list first. Casting, screen mirroring and the Google Assistant stay.
 
-**Replaces the home screen** with a black, tvOS-inspired launcher: a dock of the four apps you
-pick, the rest in a grid, one glass highlight that springs between tiles, and an Inputs menu that
-shows your HDMI ports under whatever names you gave them.
+**Replaces the home screen.** A pane carrying the time, the weekday and the Hindu date; a weather
+pane with the conditions, the chance of rain, the next four hours and the air quality; a line of
+scripture or a mantra that changes every day and plays on YouTube when you press OK; and six app
+tiles a row, ordered by what you opened last, with a set-top box pinned among them as a tile so it
+is one press rather than three through a menu. Hold OK on any app to put it in the bottom row or
+take it out. Greets in Hindi by the hour, and on a festival greets the house and anyone visiting
+it by name.
+
+**Puts your own pictures behind it.** Point the script at a folder and the TV shows one a day, in
+order, round and round; point it at a single file and it stays. Add more whenever - the TV notices
+within a minute and never needs rebuilding. The pictures live in the app's own folder, so the
+launcher never asks for permission over your storage. With no pictures the background is a sky
+that follows the time of day, with a light that drifts slowly across it.
 
 **Adds an ambient screensaver.** A deep sky gradient that shifts through dawn, day, dusk and night
 with the hour, an oversized clock filled with the sky's own colour, today's weather, headlines with
@@ -29,7 +39,11 @@ you press a button because you are still up.
 **Puts a family board on the TV.** Open the page the TV serves on your home Wi-Fi, type a note or
 pick a photo, and it appears on the screen - with a banner over whatever is playing, so it is seen
 mid-film. A new photo fills the screensaver for ten minutes. Optionally the same board accepts
-email from outside the house, from senders you list.
+email from outside the house, or messages from a private Telegram bot, from senders you list.
+
+**Keeps the colours in one file.** `launcher/app/src/main/res/values/colors.xml` holds every
+colour the home screen uses, with alternatives written in beside them. Change a line, reinstall,
+see it - no Java, no layouts, nothing else to keep in step.
 
 **Reclaims memory.** On a 1 GB TV, roughly 115 MB of permanently idle services.
 
