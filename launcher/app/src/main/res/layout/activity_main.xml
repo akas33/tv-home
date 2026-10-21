@@ -249,7 +249,7 @@
                  than it was, and the same height as the time pane. -->
             <LinearLayout
                 android:id="@+id/weatherTile"
-                android:layout_width="300dp"
+                android:layout_width="348dp"
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
                 android:background="@drawable/pane"

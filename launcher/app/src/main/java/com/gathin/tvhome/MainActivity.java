@@ -219,6 +219,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         updatePanchang();
         updateQuote();
         handler.postDelayed(minuteTick, MINUTE_MS);
+        chaseWeather();
 
         // Return to the tile we left from, or the first one.
         grid.post(() -> {
@@ -458,6 +459,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // up there, the label read as a heading for nothing.
             airWord.setText(getString(R.string.aqi) + "  \u00B7  " + air.word);
             airBlock.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
+     * The first fetch of the day happens on a background thread and can take a few seconds, and
+     * until it lands the weather pane is not drawn at all. Waiting for the minute tick meant the
+     * pane was missing for up to a minute after every launch, which looked like a bug and was one.
+     * Check back a few times over the first half minute, then stop.
+     */
+    private void chaseWeather() {
+        for (int after : new int[]{1500, 4000, 9000, 16000, 30000}) {
+            handler.postDelayed(() -> {
+                if (!isFinishing()) updateWeather();
+            }, after);
         }
     }
 
