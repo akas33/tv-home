@@ -52,7 +52,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
                     android:textColor="#D9FFFFFF"
-                    android:textSize="17sp"
+                    android:textSize="15sp"
                     android:fontFamily="@font/space_grotesk"
                     android:fontVariationSettings="'wght' 500" />
 
@@ -69,7 +69,7 @@
                         android:format12Hour="h:mm"
                         android:format24Hour="HH:mm"
                         android:textColor="#FFFFFFFF"
-                        android:textSize="76sp"
+                        android:textSize="54sp"
                         android:fontFamily="@font/space_grotesk"
                         android:fontVariationSettings="'wght' 300"
                         android:letterSpacing="-0.04"
@@ -81,11 +81,11 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"
                         android:layout_gravity="bottom"
-                        android:layout_marginBottom="14dp"
+                        android:layout_marginBottom="9dp"
                         android:format12Hour="a"
                         android:format24Hour=""
                         android:textColor="#D9FFFFFF"
-                        android:textSize="26sp"
+                        android:textSize="18sp"
                         android:fontFamily="@font/space_grotesk"
                         android:fontVariationSettings="'wght' 500"
                         android:letterSpacing="0.02"
@@ -103,7 +103,7 @@
                     android:format12Hour="EEEE, d MMMM"
                     android:format24Hour="EEEE, d MMMM"
                     android:textColor="#FFFFFFFF"
-                    android:textSize="18sp"
+                    android:textSize="16sp"
                     android:fontFamily="@font/space_grotesk"
                     android:fontVariationSettings="'wght' 500" />
 
@@ -120,7 +120,7 @@
                     android:paddingBottom="9dp"
                     android:background="@drawable/quote_bg"
                     android:textColor="#E9C46A"
-                    android:textSize="20sp"
+                    android:textSize="17sp"
                     android:singleLine="true"
                     android:nextFocusDown="@+id/grid"
                     android:nextFocusUp="@+id/btnInputs"
@@ -189,7 +189,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="#FFFFFFFF"
-                        android:textSize="30sp"
+                        android:textSize="24sp"
                         android:fontFamily="@font/space_grotesk"
                         android:fontVariationSettings="'wght' 500"
                         android:letterSpacing="-0.02"
@@ -228,7 +228,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="#FFFFFFFF"
-                        android:textSize="22sp"
+                        android:textSize="19sp"
                         android:includeFontPadding="false"
                         android:singleLine="true" />
 

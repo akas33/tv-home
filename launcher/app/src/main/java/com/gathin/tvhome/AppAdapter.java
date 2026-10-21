@@ -108,7 +108,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         this.favourites = Arrays.asList(ctx.getResources().getStringArray(R.array.dock_apps));
         this.hidden = new HashSet<>(Arrays.asList(ctx.getResources().getStringArray(R.array.hidden_apps)));
         this.tileStyle = ctx.getString(R.string.tile_style).trim().toLowerCase();
-        this.tileInset = Math.round(13 * ctx.getResources().getDisplayMetrics().density);
+        this.tileInset = Math.round(10 * ctx.getResources().getDisplayMetrics().density);
     }
 
     private SharedPreferences usage() {

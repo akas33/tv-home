@@ -9,8 +9,8 @@
 
     <FrameLayout
         android:id="@+id/card"
-        android:layout_width="180dp"
-        android:layout_height="101dp"
+        android:layout_width="152dp"
+        android:layout_height="86dp"
         android:layout_gravity="center_horizontal|top"
         android:background="@drawable/tile_bg"
         android:focusable="true"
@@ -25,8 +25,8 @@
 
         <ImageView
             android:id="@+id/icon"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:layout_gravity="center"
             android:layout_marginBottom="14dp"
             android:visibility="gone"
@@ -44,24 +44,24 @@
             android:singleLine="true"
             android:ellipsize="end"
             android:textColor="#FFFFFFFF"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:fontFamily="@font/space_grotesk"
             android:visibility="gone" />
     </FrameLayout>
 
     <TextView
         android:id="@+id/name"
-        android:layout_width="180dp"
-        android:layout_height="22dp"
+        android:layout_width="152dp"
+        android:layout_height="20dp"
         android:layout_gravity="center_horizontal|top"
-        android:layout_marginTop="108dp"
+        android:layout_marginTop="92dp"
         android:gravity="center"
         android:singleLine="true"
         android:ellipsize="end"
         android:alpha="0"
         android:translationY="-6dp"
         android:textColor="#F2FFFFFF"
-        android:textSize="14sp"
+        android:textSize="13sp"
         android:fontFamily="@font/space_grotesk"
         android:fontVariationSettings="'wght' 500"
         android:letterSpacing="0.02" />

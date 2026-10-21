@@ -84,7 +84,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             updateWeather();      // the first fetch is async, so it lands on a later tick
             updatePanchang();
             updateQuote();
-            root.setBackground(Sky.background());   // cheap, and catches the turn of the hour
+            root.setBackground(Sky.background(this));   // cheap, and catches the turn of the hour
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -120,7 +120,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         // The background follows the time of day rather than sitting on flat black. Set behind the
         // ambient glow, which still tints it with the focused app's colour.
-        root.setBackground(Sky.background());
+        root.setBackground(Sky.background(this));
 
         grid = findViewById(R.id.grid);
         grid.setLayoutManager(new GridLayoutManager(this, COLUMNS));
@@ -135,7 +135,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // tvOS layout: push the dock row to the bottom of the screen; the grid hides below until you press Down.
         grid.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
             int h = b - t;
-            int dockRow = (int) ((145 + 6 + 12) * density);   // item height plus DockDecoration offsets
+            int dockRow = (int) ((124 + 6 + 12) * density);   // item height plus DockDecoration offsets
             int want = Math.max(0, h - dockRow - (int) (30 * density));
             if (grid.getPaddingTop() != want) {
                 grid.setPadding(grid.getPaddingLeft(), want, grid.getPaddingRight(), grid.getPaddingBottom());
@@ -395,7 +395,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         boolean festival = !text.equals(getString(res));
         greeting.setText(text);
         greeting.setTextColor(festival ? Sky.GOLD : 0xD9FFFFFF);
-        greeting.setTextSize(festival ? 22 : 17);
+        greeting.setTextSize(festival ? 19 : 15);
     }
 
     /** The line of the day under the date, from daily_quotes in config.xml. */

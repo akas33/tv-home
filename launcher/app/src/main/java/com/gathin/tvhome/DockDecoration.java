@@ -21,7 +21,9 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     DockDecoration(int dockSize, float density) {
         this.dockSize = dockSize;
         this.density = density;
-        band.setColor(0xFF141416);
+        // Translucent, not solid: the background is a colour now, and an opaque grey slab sat on
+        // top of it like a sticker.
+        band.setColor(0x4D000000);
         edge.setStyle(Paint.Style.STROKE);
         edge.setStrokeWidth(density);
         edge.setColor(0x1FFFFFFF);

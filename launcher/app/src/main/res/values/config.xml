@@ -43,6 +43,13 @@
          Change this one word and reinstall to see the difference; nothing else has to change. -->
     <string name="tile_style" translatable="false">inset</string>
 
+    <!-- A picture behind the home screen. Put any photo on the TV at this path and it becomes the
+         background, under a scrim dark enough to keep the clock and app names readable:
+             .\windows\tv.ps1 wallpaper C:\path\to\your-picture.jpg
+         Swap the file whenever you like - the TV picks up the new one within a minute, with
+         nothing to rebuild. Leave this blank and the background is the plain colour of the hour. -->
+    <string name="wallpaper_path" translatable="false">/sdcard/tvhome/wallpaper.jpg</string>
+
     <!-- Greet in Hindi on the home screen. Set false if your TV has no Devanagari font and the
          greeting shows as boxes. The screensaver keeps English either way. -->
     <bool name="greeting_in_hindi">true</bool>
