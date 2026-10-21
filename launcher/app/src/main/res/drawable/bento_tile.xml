@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One pane of the bento row. Dark enough to hold its own over a photo, lit from the top edge so it
+  reads as a raised surface rather than a flat rectangle, with a shadow under it for the same
+  reason. Two shapes, no blur, no layers to composite: a 1 GB TV draws this for free.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:top="4dp" android:left="2dp" android:right="2dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#59000000" />
+            <corners android:radius="22dp" />
+        </shape>
+    </item>
+
+    <item android:bottom="4dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#38222A52"
+                android:endColor="#CC0A0D1E" />
+            <stroke android:width="1dp" android:color="#24FFFFFF" />
+            <corners android:radius="22dp" />
+        </shape>
+    </item>
+</layer-list>

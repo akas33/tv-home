@@ -13,7 +13,7 @@
     .\windows\tv.ps1 install                    build and install the launcher + screensaver
     .\windows\tv.ps1 screensaver [preview]      select the Ambient screensaver (preview starts it now)
     .\windows\tv.ps1 shot [name]                screenshot; with a name it goes to docs\<name>.png
-    .\windows\tv.ps1 wallpaper <file.jpg>       put a picture behind the home screen (no file: remove)
+    .\windows\tv.ps1 wallpaper <folder|file>    pictures behind the home screen, one a day (no path: remove)
     .\windows\tv.ps1 lockdown                   turn TV debugging back off when you are finished
     .\windows\tv.ps1 chatid <bot token>         list the Telegram chat IDs allowed on the TV board
     .\windows\tv.ps1 brief "line 1" "line 2"    optional: send your own lines to the screensaver
@@ -366,29 +366,58 @@ switch ($Cmd) {
         }
     }
     "wallpaper" {
-        # Put a picture behind the home screen:
+        # Pictures behind the home screen. A whole folder, or one picture:
+        #   .\windows\tv.ps1 wallpaper C:\Users\me\Desktop\tv
         #   .\windows\tv.ps1 wallpaper C:\Users\me\Pictures\krishna.jpg
-        # The launcher reads whatever is at wallpaper_path (config.xml) and notices a new file
-        # within a minute, so there is nothing to rebuild and no app to reinstall. Run it with no
-        # file to take the picture off again.
+        # The TV shows one a day, in name order, and notices new ones within a minute - nothing to
+        # rebuild. Run it with no path to take them all off again.
         Need-Venv
+        $remote = "/sdcard/tvhome/wallpapers"
         if (-not ($Rest -and $Rest[0])) {
-            & $Py -I tools\tv.py "rm -f /sdcard/tvhome/wallpaper.jpg" | Out-Null
-            Write-Host "Wallpaper removed. The home screen goes back to the colour of the hour."
+            & $Py -I tools\tv.py "rm -rf $remote" | Out-Null
+            Write-Host "Pictures removed. The home screen goes back to the colour of the hour."
             break
         }
-        $pic = $Rest[0]
-        if (-not (Test-Path $pic)) { Write-Host "No such file: $pic"; break }
-        $size = (Get-Item $pic).Length
-        if ($size -gt 12MB) {
-            Write-Host ("That picture is {0} MB. Please use one under 12 MB - this TV has 1 GB of memory." -f [math]::Round($size/1MB,1))
+        $src = $Rest[0]
+        if (-not (Test-Path $src)) { Write-Host "No such file or folder: $src"; break }
+
+        if (Test-Path $src -PathType Container) {
+            $pics = Get-ChildItem -Path $src -File |
+                    Where-Object { $_.Extension -match '^\.(jpg|jpeg|png|webp|jfif|bmp)$' }
+        } else {
+            $pics = @(Get-Item $src)
+        }
+        if (-not $pics -or $pics.Count -eq 0) {
+            Write-Host "No pictures there. Looking for .jpg .jpeg .png .webp .jfif .bmp"
             break
         }
-        & $Py -I tools\tv.py "mkdir -p /sdcard/tvhome" | Out-Null
-        & $Py -I tools\tv.py --push "$pic" /sdcard/tvhome/wallpaper.jpg
+
+        # Start clean, so pictures taken out of the folder leave the TV too.
+        & $Py -I tools\tv.py "rm -rf $remote" | Out-Null
+        & $Py -I tools\tv.py "mkdir -p $remote" | Out-Null
+
+        $sent = 0; $skipped = 0
+        foreach ($p in $pics) {
+            if ($p.Length -gt 12MB) {
+                Write-Host ("  skipped {0} - {1} MB is too big for a 1 GB TV" -f $p.Name, [math]::Round($p.Length/1MB,1))
+                $skipped++
+                continue
+            }
+            # Keep the order but give every file a plain safe name: the TV sorts by name.
+            $safe = "{0:d2}-{1}" -f ($sent + 1), ($p.Name -replace '[^A-Za-z0-9._-]', '_')
+            & $Py -I tools\tv.py --push $p.FullName "$remote/$safe" | Out-Null
+            Write-Host ("  sent {0}" -f $p.Name)
+            $sent++
+        }
         Write-Host ""
-        Write-Host ("Sent {0} ({1} KB). It appears on the home screen within a minute." -f (Split-Path $pic -Leaf), [math]::Round($size/1KB))
-        Write-Host "Send a different file any time to change it; run 'wallpaper' with no file to remove it."
+        if ($sent -eq 0) {
+            Write-Host "Nothing was sent."
+        } else {
+            Write-Host ("{0} picture(s) on the TV - one a day, then round again ({1} days of pictures)." -f $sent, $sent)
+            if ($skipped -gt 0) { Write-Host ("{0} were too big and were left out." -f $skipped) }
+            Write-Host "The first appears on the home screen within a minute."
+            Write-Host "Add more to the folder and run this again; run 'wallpaper' with no path to remove them."
+        }
     }
     "lockdown" {
         # Network ADB is the biggest hole this project opens: anything on your Wi-Fi can reach

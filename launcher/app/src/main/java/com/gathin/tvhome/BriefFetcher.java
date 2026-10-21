@@ -31,6 +31,7 @@ final class BriefFetcher {
     private static final long RETRY_MS = 5L * 60 * 1000;
     private static final int MAX_HEADLINES = 6;
     private static final int MAX_IMAGES = 3;        // only the first few carry a picture
+    private static final int HOURS_SHOWN = 5;       // how far the hourly strip reaches
 
     /** Today's weather. Null until the first successful fetch. */
     static final class Weather {
@@ -45,6 +46,17 @@ final class BriefFetcher {
             this.high = high;
             this.low = low;
             this.rainChance = rainChance;
+        }
+    }
+
+    /** The next few hours, for the strip under the temperature. */
+    static final class Hour {
+        final String at;        // "2 PM"
+        final long temp;
+
+        Hour(String at, long temp) {
+            this.at = at;
+            this.temp = temp;
         }
     }
 
@@ -79,6 +91,7 @@ final class BriefFetcher {
 
     static volatile Weather weather;
     static volatile Air air;
+    static volatile List<Hour> hours = Collections.emptyList();
     static volatile List<Headline> headlines = Collections.emptyList();
 
     private static volatile long lastAttempt = 0;
@@ -134,11 +147,13 @@ final class BriefFetcher {
         if (lat.isEmpty() || lon.isEmpty()) return null;
         String url = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon
                 + "&current=temperature_2m,weather_code"
+                + "&hourly=temperature_2m"
                 + "&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max"
-                + "&forecast_days=1&timezone=auto";
+                + "&forecast_days=2&timezone=auto";
         JSONObject j = new JSONObject(get(url));
         JSONObject cur = j.getJSONObject("current");
         JSONObject day = j.getJSONObject("daily");
+        hours = parseHours(j);
         double rain = first(day, "precipitation_probability_max");
         return new Weather(
                 c.getString(R.string.weather_label).trim(),
@@ -166,6 +181,39 @@ final class BriefFetcher {
         JSONObject cur = new JSONObject(get(url)).getJSONObject("current");
         if (cur.isNull("us_aqi")) return null;
         return new Air((int) Math.round(cur.getDouble("us_aqi")));
+    }
+
+    /**
+     * The next few hours. Open-Meteo returns the whole day from midnight, so we skip forward to
+     * the hour we are in and take what follows - two days are asked for so an evening does not run
+     * out of hours before the strip is full.
+     */
+    private static List<Hour> parseHours(JSONObject root) {
+        List<Hour> out = new ArrayList<>();
+        try {
+            JSONObject h = root.getJSONObject("hourly");
+            JSONArray times = h.getJSONArray("time");
+            JSONArray temps = h.getJSONArray("temperature_2m");
+            java.util.Calendar now = java.util.Calendar.getInstance();
+            String today = String.format(java.util.Locale.US, "%tFT%02d", now, now.get(java.util.Calendar.HOUR_OF_DAY));
+            boolean started = false;
+            for (int i = 0; i < times.length() && out.size() < HOURS_SHOWN; i++) {
+                String stamp = times.getString(i);           // 2026-10-21T14:00
+                if (!started) {
+                    // compare date+hour only, so the hour we are in is passed over too
+                    if (stamp.length() < 13 || stamp.substring(0, 13).compareTo(today) <= 0) continue;
+                    started = true;
+                }
+                if (temps.isNull(i)) continue;
+                int hour24 = Integer.parseInt(stamp.substring(11, 13));
+                int hour12 = hour24 % 12 == 0 ? 12 : hour24 % 12;
+                out.add(new Hour(hour12 + (hour24 < 12 ? " AM" : " PM"),
+                        Math.round(temps.getDouble(i))));
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "hourly failed", e);
+        }
+        return Collections.unmodifiableList(out);
     }
 
     private static double first(JSONObject o, String key) {

@@ -20,13 +20,14 @@
     <!-- Home screen greeting. Space Grotesk has no Devanagari, so the TV's own Hindi font is used
          for these; if your TV lacks one you will see boxes - set greeting_in_hindi to false. -->
     <string name="good_morning_hi">शुभ प्रभात</string>
-    <string name="good_afternoon_hi">शुभ दोपहर</string>
+    <string name="good_afternoon_hi">नमस्ते</string>
     <string name="good_evening_hi">शुभ संध्या</string>
     <string name="good_night_hi">शुभ रात्रि</string>
     <!-- Festival days replace the greeting. %1$s is the festival, %2$s is family_name. -->
     <string name="festival_greeting">Happy %1$s</string>
     <string name="festival_greeting_family">Happy %1$s, %2$s</string>
     <string name="aqi">AQI</string>
+    <string name="aqi_label">AIR QUALITY</string>
     <string name="quote_no_player">No app on this TV can play that link</string>
 
     <!-- Hold OK on an app tile. -->

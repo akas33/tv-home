@@ -8,53 +8,56 @@ import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.util.Log;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Calendar;
 
 /**
  * What sits behind the home screen.
  *
- * A picture if there is one: drop a photo at the path in config.xml (wallpaper_path, by default
- * /sdcard/tvhome/wallpaper.jpg) and it becomes the background, under a scrim dark enough that
- * white text stays readable over anything. Put a different picture there and the TV picks it up
- * the next time the home screen is opened - nothing to rebuild.
+ * A folder of pictures, one of which is shown for the day: put as many as you like in the folder
+ * named by wallpaper_dir in config.xml and the TV works through them, a different one each day,
+ * in a fixed order so the same date always gives the same picture. Add more any time; the TV
+ * notices within a minute and never needs rebuilding.
  *
- * Otherwise a colour that follows the time of day, in peacock - deep indigo through teal, warm at
- * dusk - so the screen is never flat black.
+ * With no folder, or no pictures in it, the background is a colour that follows the time of day,
+ * so the screen is never flat black.
  *
- * The decode is deliberately cheap: downscaled to the screen and 16-bit, because this is a 1 GB TV
- * and a full-size JPEG held behind the launcher is memory that the apps need more.
+ * The decode is deliberately cheap - downscaled to the screen, 16-bit - because this is a 1 GB TV
+ * and a full-size photo held behind the launcher is memory the apps need more. Only one picture is
+ * ever in memory, and it is kept until the day or the folder changes.
  */
 final class Sky {
 
     private static final String TAG = "TvHome";
+    private static final String[] KINDS = {".jpg", ".jpeg", ".png", ".webp", ".jfif", ".bmp"};
 
     /** top, middle, bottom of the background gradient, for each band of the day. */
     private static final int[][] BANDS = {
-            {0xFF05070F, 0xFF0A1024, 0xFF131A33},   // 0  night
-            {0xFF0A1A2E, 0xFF10304A, 0xFF17434F},   // 5  morning
-            {0xFF07202F, 0xFF0D3845, 0xFF114A4E},   // 11 midday
-            {0xFF1A0F2E, 0xFF34173A, 0xFF4A2338},   // 17 evening
-            {0xFF05070F, 0xFF0A1024, 0xFF131A33},   // 22 night again
+            {0xFF07091C, 0xFF0D1030, 0xFF161A42},   // 0  night
+            {0xFF0A1330, 0xFF14204A, 0xFF1E2A5C},   // 5  morning
+            {0xFF0B1636, 0xFF152354, 0xFF203066},   // 11 midday
+            {0xFF1A0E34, 0xFF2E1348, 0xFF461B4E},   // 17 evening
+            {0xFF07091C, 0xFF0D1030, 0xFF161A42},   // 22 night again
     };
     private static final int[] STARTS = {0, 5, 11, 17, 22};
 
-    /** The gold used for the greeting on a festival day and for the line of the day. */
+    /** The accent: the pink the tiles and the line of the day pick up. */
+    static final int ACCENT = 0xFFFF2E63;
+    /** The warm gold kept for festival days. */
     static final int GOLD = 0xFFE9C46A;
 
-    /** Decoded once and kept: re-reading the card on every resume is slow and pointless. */
     private static Bitmap cached;
-    private static String cachedPath;
-    private static long cachedStamp;
+    private static String cachedKey;
 
     private Sky() {}
 
-    /** The picture if there is one, otherwise the colour of the hour. */
+    /** The picture of the day if there is one, otherwise the colour of the hour. */
     static Drawable background(Context context) {
-        Bitmap photo = wallpaper(context);
+        Bitmap photo = today(context);
         if (photo == null) return gradient();
         BitmapDrawable picture = new BitmapDrawable(context.getResources(), photo);
         picture.setGravity(android.view.Gravity.FILL);
@@ -70,13 +73,13 @@ final class Sky {
     }
 
     /**
-     * Darkened enough for white text, and darkest at the very top and bottom where the clock and
-     * the app names sit. A bright photo would otherwise swallow both.
+     * Darkest at the top and bottom, where the bento row and the app names are, and lightest
+     * across the middle so the picture still shows. Without this a bright photo swallows the text.
      */
     private static GradientDrawable scrim() {
         GradientDrawable g = new GradientDrawable(
                 GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{0xD9000000, 0x8C000000, 0xD9000000});
+                new int[]{0xD6000000, 0x66000000, 0x7A000000, 0xE0000000});
         g.setGradientType(GradientDrawable.LINEAR_GRADIENT);
         return g;
     }
@@ -90,33 +93,60 @@ final class Sky {
         return BANDS[band].clone();
     }
 
-    /** The wallpaper file, decoded small, or null when there is not one we can read. */
-    private static Bitmap wallpaper(Context context) {
-        String path = context.getString(R.string.wallpaper_path).trim();
-        if (path.isEmpty()) return null;
-        File file = new File(path);
-        if (!file.isFile() || !file.canRead()) return null;
+    /** Today's picture, decoded small, or null when the folder has nothing we can read. */
+    private static Bitmap today(Context context) {
+        String dir = context.getString(R.string.wallpaper_dir).trim();
+        if (dir.isEmpty()) return null;
+        File[] pictures = list(new File(dir));
+        if (pictures.length == 0) return null;
 
-        // Same file, same timestamp: hand back what we already decoded.
-        if (cached != null && !cached.isRecycled()
-                && path.equals(cachedPath) && file.lastModified() == cachedStamp) {
-            return cached;
-        }
+        // Sorted by name, so the order is stable, and keyed to the date, so it holds all day.
+        Calendar now = Calendar.getInstance();
+        int index = Math.abs(now.get(Calendar.YEAR) * 366 + now.get(Calendar.DAY_OF_YEAR))
+                % pictures.length;
+        File pick = pictures[index];
+        String key = pick.getAbsolutePath() + "@" + pick.lastModified() + "#" + pictures.length;
+        if (cached != null && !cached.isRecycled() && key.equals(cachedKey)) return cached;
+
         try {
             int[] screen = Photos.screen(context);
-            Bitmap decoded = Photos.decode(readAll(file), screen[0], screen[1]);
-            if (decoded == null) return null;
+            Bitmap decoded = Photos.decode(readAll(pick), screen[0], screen[1]);
+            if (decoded == null) {
+                Log.w(TAG, "could not decode wallpaper " + pick.getName());
+                return null;
+            }
             cached = decoded;
-            cachedPath = path;
-            cachedStamp = file.lastModified();
+            cachedKey = key;
+            Log.i(TAG, "wallpaper " + (index + 1) + " of " + pictures.length + ": " + pick.getName());
             return cached;
         } catch (Throwable t) {
-            Log.w(TAG, "wallpaper failed: " + path, t);
+            Log.w(TAG, "wallpaper failed: " + pick, t);
             return null;
         }
     }
 
-    /** Capped: a wallpaper larger than this is a mistake, not a wallpaper. */
+    /** Readable picture files in the folder, by name. A single file at that path also works. */
+    private static File[] list(File dir) {
+        if (dir.isFile()) return new File[]{dir};
+        File[] all = dir.listFiles();
+        if (all == null) return new File[0];
+        java.util.List<File> keep = new java.util.ArrayList<>();
+        for (File f : all) {
+            if (!f.isFile() || !f.canRead()) continue;
+            String name = f.getName().toLowerCase();
+            for (String kind : KINDS) {
+                if (name.endsWith(kind)) {
+                    keep.add(f);
+                    break;
+                }
+            }
+        }
+        File[] out = keep.toArray(new File[0]);
+        Arrays.sort(out, (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+        return out;
+    }
+
+    /** Capped: a picture larger than this is a mistake, not a picture. */
     private static byte[] readAll(File file) throws Exception {
         try (InputStream in = new FileInputStream(file)) {
             ByteArrayOutputStream buf = new ByteArrayOutputStream();

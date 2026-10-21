@@ -66,8 +66,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean heroShown;
     private TextView greeting;
     private TextView quote;
-    private View weatherTile, panchangTile;
-    private TextView weatherTemp, weatherAir, panchangTithi, panchangMonth;
+    private View weatherTile, airTile;
+    private TextView weatherPlace, weatherTemp, weatherSub, airNumber, airWord, tithi;
+    private LinearLayout hourly;
     private TextView btnWifi;
     private SpringAnimation springX, springY;
     private float glassTargetX, glassTargetY;
@@ -112,11 +113,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         greeting = findViewById(R.id.greeting);
         quote = findViewById(R.id.quote);
         weatherTile = findViewById(R.id.weatherTile);
+        weatherPlace = findViewById(R.id.weatherPlace);
         weatherTemp = findViewById(R.id.weatherTemp);
-        weatherAir = findViewById(R.id.weatherAir);
-        panchangTile = findViewById(R.id.panchangTile);
-        panchangTithi = findViewById(R.id.panchangTithi);
-        panchangMonth = findViewById(R.id.panchangMonth);
+        weatherSub = findViewById(R.id.weatherSub);
+        hourly = findViewById(R.id.hourly);
+        airTile = findViewById(R.id.airTile);
+        airNumber = findViewById(R.id.airNumber);
+        airWord = findViewById(R.id.airWord);
+        tithi = findViewById(R.id.tithi);
         btnWifi = findViewById(R.id.btnWifi);
 
         // The background follows the time of day rather than sitting on flat black. Set behind the
@@ -432,7 +436,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         boolean festival = !text.equals(getString(res));
         greeting.setText(text);
         greeting.setTextColor(festival ? Sky.GOLD : 0xD9FFFFFF);
-        greeting.setTextSize(festival ? 19 : 15);
     }
 
     /** The line of the day under the date, from daily_quotes in config.xml. */
@@ -454,22 +457,58 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void updateWeather() {
         BriefFetcher.refreshIfStale(this);
         BriefFetcher.Weather wx = BriefFetcher.weather;
-        if (wx == null) {
-            weatherTile.setVisibility(View.GONE);
+        if (wx != null) {
+            weatherPlace.setText(wx.place.isEmpty() ? wx.condition : wx.place.toUpperCase());
+            weatherTemp.setText(wx.temp + "\u00B0");
+            String sub = wx.condition + "    H " + wx.high + "\u00B0   L " + wx.low + "\u00B0";
+            if (wx.rainChance >= 0) sub = sub + "    \u2614 " + wx.rainChance + "%";
+            weatherSub.setText(sub);
+            fillHourly();
+            weatherTile.setVisibility(View.VISIBLE);
+        }
+
+        BriefFetcher.Air air = BriefFetcher.air;
+        if (air != null) {
+            airNumber.setText(String.valueOf(air.aqi));
+            airNumber.setTextColor(air.colour);
+            airWord.setText(air.word);
+            airTile.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /** The next few hours across the bottom of the weather tile, built fresh each time. */
+    private void fillHourly() {
+        java.util.List<BriefFetcher.Hour> next = BriefFetcher.hours;
+        hourly.removeAllViews();
+        if (next.isEmpty()) {
+            hourly.setVisibility(View.GONE);
             return;
         }
-        weatherTemp.setText(wx.temp + "\u00B0  " + wx.condition);
+        for (BriefFetcher.Hour h : next) {
+            LinearLayout column = new LinearLayout(this);
+            column.setOrientation(LinearLayout.VERTICAL);
+            column.setGravity(Gravity.CENTER_HORIZONTAL);
+            column.setLayoutParams(new LinearLayout.LayoutParams(0,
+                    ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
-        // Air quality shares the tile: the number in its band's colour, the word after it.
-        BriefFetcher.Air air = BriefFetcher.air;
-        if (air == null) {
-            weatherAir.setText(wx.high + "\u00B0 / " + wx.low + "\u00B0");
-            weatherAir.setTextColor(0xB3FFFFFF);
-        } else {
-            weatherAir.setText(getString(R.string.aqi) + " " + air.aqi + "  \u00B7  " + air.word);
-            weatherAir.setTextColor(air.colour);
+            TextView at = new TextView(this);
+            at.setText(h.at);
+            at.setTextSize(11);
+            at.setTextColor(0x99FFFFFF);
+            at.setSingleLine(true);
+
+            TextView deg = new TextView(this);
+            deg.setText(h.temp + "\u00B0");
+            deg.setTextSize(15);
+            deg.setTextColor(0xFFFFFFFF);
+            deg.setSingleLine(true);
+            deg.setPadding(0, (int) (3 * density), 0, 0);
+
+            column.addView(at);
+            column.addView(deg);
+            hourly.addView(column);
         }
-        weatherTile.setVisibility(View.VISIBLE);
+        hourly.setVisibility(View.VISIBLE);
     }
 
     /**
@@ -479,24 +518,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     private void updatePanchang() {
         try {
-            Calendar now = Calendar.getInstance();
-            Panchang p = Panchang.at(now);
-            String feast = Panchang.upcoming(now);
-
-            // The festival takes the top line when there is one, because that is what gets looked
-            // for; the tithi then drops to the second line beside the paksha.
-            if (feast == null) {
-                panchangTithi.setText(p.tithi);
-                panchangTithi.setTextColor(0xFFFFFFFF);
-                panchangMonth.setText(p.paksha + "  ·  " + p.nakshatra);
-            } else {
-                panchangTithi.setText(feast);
-                panchangTithi.setTextColor(Sky.GOLD);
-                panchangMonth.setText(p.paksha + " " + p.tithi);
-            }
-            panchangTile.setVisibility(View.VISIBLE);
+            // No festival tile any more: a festival day says so in the greeting, and saying it
+            // twice on one screen was clutter. The tithi rides quietly under the clock.
+            Panchang p = Panchang.at(Calendar.getInstance());
+            tithi.setText(p.paksha + " " + p.tithi);
+            tithi.setVisibility(View.VISIBLE);
         } catch (Exception e) {
-            panchangTile.setVisibility(View.GONE);
+            tithi.setVisibility(View.GONE);
         }
     }
 
