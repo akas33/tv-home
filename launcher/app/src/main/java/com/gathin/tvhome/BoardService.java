@@ -61,10 +61,16 @@ public class BoardService extends Service {
         notifier = new OverlayNotifier(this);
         startInForeground();
 
-        upload = new UploadServer(this);
-        Thread t = new Thread(upload, "upload-server");
-        t.setDaemon(true);
-        t.start();
+        // The page the TV serves is the only thing here that LISTENS on the network, so it is the
+        // only part with an attack surface on your Wi-Fi: anything on the same network can reach
+        // it. Off unless you ask for it. Mail and Telegram only ever dial out, which is why they
+        // are not gated the same way.
+        if (getResources().getBoolean(R.bool.upload_server_enabled)) {
+            upload = new UploadServer(this);
+            Thread t = new Thread(upload, "upload-server");
+            t.setDaemon(true);
+            t.start();
+        }
 
         worker = new HandlerThread("board-poll");
         worker.start();

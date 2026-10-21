@@ -177,6 +177,13 @@ launcher replacement). Tested so far on the models in [`examples/`](examples/).
 Add your TV's debloat list, improve the launcher, or sharpen the prompt. See
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Security
+
+The page that accepts photos is **off by default** - it is the only part that listens on your
+network. Mail and Telegram only dial out. There is no location permission and no storage
+permission. [`SECURITY.md`](SECURITY.md) lists every address the app can reach and the commands to
+verify that list yourself, rather than taking it on trust.
+
 ## Licence
 
 MIT, see [`LICENSE`](LICENSE). The Outfit typeface is under the SIL Open Font License, see

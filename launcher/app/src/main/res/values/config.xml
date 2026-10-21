@@ -116,6 +116,14 @@
          button so anything on screen can be wiped from a phone. Code: upload_pin in secrets.xml. -->
     <integer name="upload_port">8080</integer>
 
+    <!-- OFF by default, and it is the one setting here with a security cost. This is the only
+         part of the launcher that LISTENS on your network: while it is on, every device on your
+         Wi-Fi can reach that page - a guest's phone, a phone with a bad app on it, a cheap smart
+         plug. The code on it goes some way, not all the way.
+         Email and Telegram below need none of this: they only ever dial out, so nothing on your
+         network can reach the TV through them. If one of those covers you, leave this false. -->
+    <bool name="upload_server_enabled">false</bool>
+
     <!-- The board runs a small always-on service: the upload page, the mail check and the banner
          over other apps. It is the only thing this launcher leaves running. Set to false if you
          would rather have the memory back on a 1 GB TV; the screensaver, clock, weather, news and

@@ -24,6 +24,12 @@ import java.nio.charset.StandardCharsets;
 final class UploadServer implements Runnable {
     private static final int MAX_BODY = 8 * 1024 * 1024;
     private static final int BACKLOG = 4;
+    /** Wrong codes allowed before the page shuts for a while. */
+    private static final int MAX_BAD_PINS = 5;
+    private static final long LOCKOUT_MS = 10L * 60 * 1000;
+
+    private int badPins;
+    private long lockedUntil;
 
     private final Context context;
     private final int port;
@@ -153,7 +159,24 @@ final class UploadServer implements Runnable {
             at = next;
         }
 
-        if (!pin.isEmpty() && !pin.equals(givenPin)) return context.getString(R.string.upload_bad_pin);
+        if (!pin.isEmpty()) {
+            long now = System.currentTimeMillis();
+            if (lockedUntil > now) {
+                return context.getString(R.string.upload_locked,
+                        Math.max(1, (lockedUntil - now + 59_000) / 60_000));
+            }
+            if (!constantTimeEquals(pin, givenPin)) {
+                // Count the misses. Anything on this Wi-Fi can reach this page, and a four-digit
+                // code falls in seconds to a script that is allowed to guess without limit.
+                if (++badPins >= MAX_BAD_PINS) {
+                    lockedUntil = now + LOCKOUT_MS;
+                    badPins = 0;
+                    return context.getString(R.string.upload_locked, LOCKOUT_MS / 60_000);
+                }
+                return context.getString(R.string.upload_bad_pin);
+            }
+            badPins = 0;
+        }
         if (!clear.isEmpty()) {
             Board.clear();
             return context.getString(R.string.upload_cleared);
@@ -252,6 +275,22 @@ final class UploadServer implements Runnable {
     }
 
     /** True for loopback and ordinary home-network addresses (10.x, 172.16-31.x, 192.168.x). */
+    /**
+     * Compares without returning early on the first wrong character. A check that bails out early
+     * takes measurably longer the more of the code is right, and that timing is enough to work out
+     * a code one character at a time over a local network.
+     */
+    private static boolean constantTimeEquals(String a, String b) {
+        if (b == null) return false;
+        byte[] x = a.getBytes(StandardCharsets.UTF_8);
+        byte[] y = b.getBytes(StandardCharsets.UTF_8);
+        int diff = x.length ^ y.length;
+        for (int i = 0; i < x.length; i++) {
+            diff |= x[i] ^ y[i % Math.max(1, y.length)];
+        }
+        return diff == 0;
+    }
+
     private static boolean isLocal(java.net.InetAddress a) {
         return a != null
                 && (a.isLoopbackAddress() || a.isSiteLocalAddress() || a.isLinkLocalAddress());

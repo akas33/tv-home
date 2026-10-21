@@ -54,6 +54,7 @@
     <string name="upload_sent_photo">Photo sent to the TV.</string>
     <string name="upload_empty">Write a note or pick a photo first.</string>
     <string name="upload_bad_pin">Wrong code.</string>
+    <string name="upload_locked">Too many wrong codes. Try again in %1$d minutes.</string>
     <string name="upload_failed">That did not send. Please try again.</string>
     <string name="upload_send">Send to the TV</string>
     <string name="upload_clear">Clear the TV screen</string>
