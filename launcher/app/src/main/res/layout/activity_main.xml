@@ -97,10 +97,16 @@
             android:layout_marginTop="14dp">
 
             <LinearLayout
-                android:id="@+id/clockTile"
+                android:id="@+id/leftColumn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentStart="true"
+                android:orientation="vertical">
+
+            <LinearLayout
+                android:id="@+id/clockTile"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:background="@drawable/pane"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
@@ -130,7 +136,7 @@
                             android:textColor="@color/text_bright"
                             android:textSize="46sp"
                             android:fontFamily="@font/outfit"
-                            android:fontVariationSettings="'wght' 500"
+                            android:fontVariationSettings="'wght' 600"
                             android:letterSpacing="-0.045"
                             android:includeFontPadding="false" />
 
@@ -199,7 +205,7 @@
                         android:textColor="@color/text_bright"
                         android:textSize="40sp"
                         android:fontFamily="@font/outfit"
-                        android:fontVariationSettings="'wght' 500"
+                        android:fontVariationSettings="'wght' 600"
                         android:letterSpacing="-0.04"
                         android:includeFontPadding="false"
                         android:singleLine="true" />
@@ -217,6 +223,24 @@
                         android:fontVariationSettings="'wght' 600"
                         android:singleLine="true" />
                 </LinearLayout>
+            </LinearLayout>
+
+                <TextView
+                    android:id="@+id/quote"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:paddingStart="26dp"
+                    android:paddingEnd="26dp"
+                    android:paddingTop="13dp"
+                    android:paddingBottom="15dp"
+                    android:background="@drawable/quote_bg"
+                    android:textColor="@color/accent"
+                    android:textSize="18sp"
+                    android:singleLine="true"
+                    android:nextFocusDown="@+id/grid"
+                    android:nextFocusUp="@+id/btnInputs"
+                    android:visibility="gone" />
             </LinearLayout>
 
             <!-- Weather, right corner. Two columns side by side in a row that shares its width
@@ -255,7 +279,7 @@
                             android:textColor="@color/text_bright"
                             android:textSize="42sp"
                             android:fontFamily="@font/outfit"
-                            android:fontVariationSettings="'wght' 500"
+                            android:fontVariationSettings="'wght' 700"
                             android:letterSpacing="-0.045"
                             android:includeFontPadding="false"
                             android:singleLine="true" />
@@ -283,23 +307,14 @@
                         android:visibility="invisible">
 
                         <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/aqi"
-                            android:textColor="@color/text_soft"
-                            android:textSize="14sp"
-                            android:fontFamily="@font/outfit"
-                            android:fontVariationSettings="'wght' 600" />
-
-                        <TextView
                             android:id="@+id/airNumber"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:textColor="@color/text_bright"
-                            android:textSize="30sp"
+                            android:textSize="34sp"
                             android:fontFamily="@font/outfit"
-                            android:fontVariationSettings="'wght' 500"
+                            android:fontVariationSettings="'wght' 700"
                             android:letterSpacing="-0.03"
                             android:includeFontPadding="false"
                             android:singleLine="true" />
@@ -327,23 +342,7 @@
             </LinearLayout>
         </RelativeLayout>
 
-        <!-- The mantra of the day. Press OK to play it. -->
-        <TextView
-            android:id="@+id/quote"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:paddingStart="26dp"
-            android:paddingEnd="26dp"
-            android:paddingTop="13dp"
-            android:paddingBottom="15dp"
-            android:background="@drawable/quote_bg"
-            android:textColor="@color/accent"
-            android:textSize="18sp"
-            android:singleLine="true"
-            android:nextFocusDown="@+id/grid"
-            android:nextFocusUp="@+id/btnInputs"
-            android:visibility="gone" />
+
 
         <!-- The wrapper clips at the grid's edge; the grid itself must not clip so scaled tiles can overflow their cells. -->
         <FrameLayout

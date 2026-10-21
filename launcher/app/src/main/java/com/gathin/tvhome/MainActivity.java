@@ -454,9 +454,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         BriefFetcher.Air air = BriefFetcher.air;
         if (air != null) {
             airNumber.setText(String.valueOf(air.aqi));
-            // White, not the band's colour: gold and amber over a bright photograph read as faint,
-            // and the word underneath already says which band it is.
-            airWord.setText(air.word);
+            // One line under the number rather than a bare "AQI" stacked above it: on its own,
+            // up there, the label read as a heading for nothing.
+            airWord.setText(getString(R.string.aqi) + "  \u00B7  " + air.word);
             airBlock.setVisibility(View.VISIBLE);
         }
     }
