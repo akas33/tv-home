@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The line of the day. Nothing is drawn around it until the remote lands on it, so the home screen
+  stays calm; once focused it gets the same pane as the corner tiles so it is obvious OK will do
+  something.
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:startColor="#2EFFFFFF"
+                android:endColor="#14FFFFFF" />
+            <stroke android:width="1dp" android:color="#59E9C46A" />
+            <corners android:radius="14dp" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#00000000" />
+            <corners android:radius="14dp" />
+        </shape>
+    </item>
+</selector>

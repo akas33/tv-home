@@ -33,9 +33,52 @@
     <!-- Tiles per row in the grid; the dock always has this many slots. -->
     <integer name="columns">4</integer>
 
+    <!-- How an app tile is drawn. Apps ship their own artwork and no two agree - Netflix is a white
+         box, Prime a solid blue one - which is why an untouched row of them looks like a jumble.
+           banner  the artwork fills the tile. What most TV launchers do.
+           inset   the artwork floats on the tile's own dark card, so every tile shares a surface
+                   and a gutter and the row reads as one thing. The default.
+           icon    the artwork is ignored: the app's icon over its name, the most uniform of the
+                   three, and closest to an Apple TV row.
+         Change this one word and reinstall to see the difference; nothing else has to change. -->
+    <string name="tile_style" translatable="false">inset</string>
+
     <!-- Greet in Hindi on the home screen. Set false if your TV has no Devanagari font and the
          greeting shows as boxes. The screensaver keeps English either way. -->
     <bool name="greeting_in_hindi">true</bool>
+
+    <!-- Who the TV greets on a festival day: "Happy Dussehra, Manju and family". Leave blank for
+         just "Happy Dussehra". Ordinary days keep the plain time-of-day greeting. -->
+    <string name="family_name">Manju and family</string>
+
+    <!-- The line of the day, under the clock. One is picked from today's date, so it holds all day
+         and changes tomorrow; the list runs round as long as it needs to. Add, remove or reorder
+         freely - these are the only lines the TV will ever show. -->
+    <string-array name="daily_quotes">
+        <item>हरे कृष्ण हरे कृष्ण, कृष्ण कृष्ण हरे हरे</item>
+        <item>राधे राधे</item>
+        <item>जय श्री कृष्ण</item>
+        <item>हारे का सहारा, बाबा श्याम हमारा</item>
+        <item>नमो भगवते वासुदेवाय</item>
+        <item>जो हुआ अच्छा हुआ, जो हो रहा है अच्छा हो रहा है</item>
+        <item>खाटू वाले बाबा की जय</item>
+        <item>लड्डू गोपाल की कृपा सदा बनी रहे</item>
+        <item>कर्म करो, फल की चिंता छोड़ो</item>
+        <item>जय श्री राधे</item>
+        <item>श्याम तेरी बंसी पुकारे राधा नाम</item>
+        <item>सब कुछ श्री कृष्ण को अर्पित</item>
+        <item>अहंकार छोड़ो, भक्ति जोड़ो</item>
+        <item>मन शांत, मन में कृष्ण</item>
+        <item>जय श्री श्याम</item>
+    </string-array>
+
+    <!-- Press OK on the line of the day to play this on YouTube. Any YouTube link works - put the
+         aarti or bhajan you actually want here. Leave blank and the line is just a line. -->
+    <string name="quote_video_url" translatable="false">https://www.youtube.com/results?search_query=hare+krishna+maha+mantra</string>
+
+    <!-- Air quality beside the temperature, from Open-Meteo's air-quality service: free, no
+         account, and it uses the same coordinates as the weather above. -->
+    <bool name="show_air_quality">true</bool>
 
     <!-- Rename inputs in the Inputs menu: "original name=new name". Spaces and case are ignored when
          matching, so "HDMI 1" also matches "HDMI1". Check the real names by opening the Inputs menu. -->

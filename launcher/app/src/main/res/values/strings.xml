@@ -23,6 +23,12 @@
     <string name="good_afternoon_hi">शुभ दोपहर</string>
     <string name="good_evening_hi">शुभ संध्या</string>
     <string name="good_night_hi">शुभ रात्रि</string>
+    <!-- Festival days replace the greeting. %1$s is the festival, %2$s is family_name. -->
+    <string name="festival_greeting">Happy %1$s</string>
+    <string name="festival_greeting_family">Happy %1$s, %2$s</string>
+    <string name="aqi">AQI</string>
+    <string name="quote_no_player">No app on this TV can play that link</string>
+
     <string name="ethernet">Ethernet</string>
     <string name="offline">Offline</string>
     <string name="screensaver_name">Ambient</string>

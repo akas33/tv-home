@@ -60,7 +60,25 @@ final class BriefFetcher {
         }
     }
 
+    /** Today's air quality. Null until the first successful fetch. */
+    static final class Air {
+        final int aqi;
+        final String word;      // "Good", "Moderate", ...
+        final int colour;       // for the number on screen
+
+        Air(int aqi) {
+            this.aqi = aqi;
+            if (aqi <= 50)        { word = "Good";      colour = 0xFF7BD389; }
+            else if (aqi <= 100)  { word = "Moderate";  colour = 0xFFE9C46A; }
+            else if (aqi <= 150)  { word = "Poor";      colour = 0xFFF4A261; }
+            else if (aqi <= 200)  { word = "Unhealthy"; colour = 0xFFE76F51; }
+            else if (aqi <= 300)  { word = "Very poor"; colour = 0xFFD64550; }
+            else                  { word = "Hazardous"; colour = 0xFFB5179E; }
+        }
+    }
+
     static volatile Weather weather;
+    static volatile Air air;
     static volatile List<Headline> headlines = Collections.emptyList();
 
     private static volatile long lastAttempt = 0;
@@ -82,6 +100,12 @@ final class BriefFetcher {
                     any |= weather != null;
                 } catch (Exception e) {
                     Log.w(TAG, "weather failed", e);
+                }
+                try {
+                    air = fetchAir(app);
+                    any |= air != null;
+                } catch (Exception e) {
+                    Log.w(TAG, "air quality failed", e);
                 }
                 try {
                     List<Headline> fresh = fetchHeadlines(app);
@@ -123,6 +147,25 @@ final class BriefFetcher {
                 Math.round(first(day, "temperature_2m_max")),
                 Math.round(first(day, "temperature_2m_min")),
                 Double.isNaN(rain) ? -1 : (int) Math.round(rain));
+    }
+
+    // ---- air quality ----
+
+    /**
+     * Open-Meteo's air-quality service: same provider as the weather, also free and with no
+     * account, and it takes the same coordinates. US AQI rather than European, because the bands
+     * Indian apps and news quote are the US ones.
+     */
+    private static Air fetchAir(Context c) throws Exception {
+        if (!c.getResources().getBoolean(R.bool.show_air_quality)) return null;
+        String lat = c.getString(R.string.weather_lat).trim();
+        String lon = c.getString(R.string.weather_lon).trim();
+        if (lat.isEmpty() || lon.isEmpty()) return null;
+        String url = "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=" + lat
+                + "&longitude=" + lon + "&current=us_aqi&timezone=auto";
+        JSONObject cur = new JSONObject(get(url)).getJSONObject("current");
+        if (cur.isNull("us_aqi")) return null;
+        return new Air((int) Math.round(cur.getDouble("us_aqi")));
     }
 
     private static double first(JSONObject o, String key) {

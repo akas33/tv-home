@@ -65,8 +65,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private int ambientColor;
     private boolean heroShown;
     private TextView greeting;
-    private TextView weatherLabel;
-    private TextView panchangLabel;
+    private TextView quote;
+    private View weatherTile, panchangTile;
+    private TextView weatherTemp, weatherAir, panchangTithi, panchangMonth;
     private TextView btnWifi;
     private SpringAnimation springX, springY;
     private float glassTargetX, glassTargetY;
@@ -82,6 +83,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             updateWifiLabel();
             updateWeather();      // the first fetch is async, so it lands on a later tick
             updatePanchang();
+            updateQuote();
+            root.setBackground(Sky.background());   // cheap, and catches the turn of the hour
             handler.postDelayed(this, MINUTE_MS);
         }
     };
@@ -106,9 +109,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ambient.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) ->
                 ambientGlow.setGradientRadius((r - l) * 0.62f));
         greeting = findViewById(R.id.greeting);
-        weatherLabel = findViewById(R.id.weather);
-        panchangLabel = findViewById(R.id.panchang);
+        quote = findViewById(R.id.quote);
+        weatherTile = findViewById(R.id.weatherTile);
+        weatherTemp = findViewById(R.id.weatherTemp);
+        weatherAir = findViewById(R.id.weatherAir);
+        panchangTile = findViewById(R.id.panchangTile);
+        panchangTithi = findViewById(R.id.panchangTithi);
+        panchangMonth = findViewById(R.id.panchangMonth);
         btnWifi = findViewById(R.id.btnWifi);
+
+        // The background follows the time of day rather than sitting on flat black. Set behind the
+        // ambient glow, which still tints it with the focused app's colour.
+        root.setBackground(Sky.background());
 
         grid = findViewById(R.id.grid);
         grid.setLayoutManager(new GridLayoutManager(this, COLUMNS));
@@ -154,6 +166,19 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnWifi.setOnClickListener(v -> open(new Intent(Settings.ACTION_WIFI_SETTINGS)));
         btnSettings.setOnClickListener(v -> open(new Intent(Settings.ACTION_SETTINGS)));
 
+        // The line of the day only takes focus when there is a song behind it; otherwise the remote
+        // skips straight past it to the apps.
+        if (Devotion.hasSong(this)) {
+            quote.setFocusable(true);
+            quote.setOnClickListener(v -> {
+                if (!Devotion.playSong(this)) {
+                    Toast.makeText(this, R.string.quote_no_player, Toast.LENGTH_SHORT).show();
+                }
+            });
+        } else {
+            quote.setFocusable(false);
+        }
+
         // Keep focus on the top bar at its ends and at the top: Android's focus finder would otherwise
         // jump to a tile far below when there is nothing in that direction.
         View.OnKeyListener pillKeys = (v, keyCode, event) -> {
@@ -186,6 +211,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         updateGreeting();
         updateWifiLabel();
         updateWeather();
+        updatePanchang();
+        updateQuote();
         handler.postDelayed(minuteTick, MINUTE_MS);
 
         // Return to the tile we left from, or the first one.
@@ -293,7 +320,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void setAmbient(int color) {
         ambientColor = color;
         int c = color & 0x00FFFFFF;
-        ambientGlow.setColors(new int[]{0x5C000000 | c, 0x26000000 | c, 0x00000000 | c});
+        // Lighter than it was: the background is now a colour of its own, so a strong wash from the
+        // focused app (Netflix turning the whole screen red) fought it instead of hinting at it.
+        ambientGlow.setColors(new int[]{0x33000000 | c, 0x14000000 | c, 0x00000000 | c});
     }
 
     private void hideHero() {
@@ -360,7 +389,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         else if (hour < 17) res = hindi ? R.string.good_afternoon_hi : R.string.good_afternoon;
         else if (hour < 22) res = hindi ? R.string.good_evening_hi : R.string.good_evening;
         else res = hindi ? R.string.good_night_hi : R.string.good_night;
-        greeting.setText(res);
+
+        // On a festival day the greeting becomes "Happy Dussehra, Manju and family", in gold.
+        String text = Devotion.greeting(this, getString(res));
+        boolean festival = !text.equals(getString(res));
+        greeting.setText(text);
+        greeting.setTextColor(festival ? Sky.GOLD : 0xD9FFFFFF);
+        greeting.setTextSize(festival ? 22 : 17);
+    }
+
+    /** The line of the day under the date, from daily_quotes in config.xml. */
+    private void updateQuote() {
+        String line = Devotion.quote(this);
+        if (line == null || line.isEmpty()) {
+            quote.setVisibility(View.GONE);
+            return;
+        }
+        quote.setText(Devotion.hasSong(this) ? line + "   ▸" : line);
+        quote.setVisibility(View.VISIBLE);
     }
 
     /**
@@ -372,11 +418,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         BriefFetcher.refreshIfStale(this);
         BriefFetcher.Weather wx = BriefFetcher.weather;
         if (wx == null) {
-            weatherLabel.setVisibility(View.GONE);
+            weatherTile.setVisibility(View.GONE);
             return;
         }
-        weatherLabel.setText(wx.temp + "\u00B0  " + wx.condition);
-        weatherLabel.setVisibility(View.VISIBLE);
+        weatherTemp.setText(wx.temp + "\u00B0  " + wx.condition);
+
+        // Air quality shares the tile: the number in its band's colour, the word after it.
+        BriefFetcher.Air air = BriefFetcher.air;
+        if (air == null) {
+            weatherAir.setText(wx.high + "\u00B0 / " + wx.low + "\u00B0");
+            weatherAir.setTextColor(0xB3FFFFFF);
+        } else {
+            weatherAir.setText(getString(R.string.aqi) + " " + air.aqi + "  \u00B7  " + air.word);
+            weatherAir.setTextColor(air.colour);
+        }
+        weatherTile.setVisibility(View.VISIBLE);
     }
 
     /**
@@ -387,12 +443,23 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private void updatePanchang() {
         try {
             Calendar now = Calendar.getInstance();
-            String line = Panchang.at(now).line();
+            Panchang p = Panchang.at(now);
             String feast = Panchang.upcoming(now);
-            panchangLabel.setText(feast == null ? line : feast + "    " + line);
-            panchangLabel.setVisibility(View.VISIBLE);
+
+            // The festival takes the top line when there is one, because that is what gets looked
+            // for; the tithi then drops to the second line beside the paksha.
+            if (feast == null) {
+                panchangTithi.setText(p.tithi);
+                panchangTithi.setTextColor(0xFFFFFFFF);
+                panchangMonth.setText(p.paksha + "  ·  " + p.nakshatra);
+            } else {
+                panchangTithi.setText(feast);
+                panchangTithi.setTextColor(Sky.GOLD);
+                panchangMonth.setText(p.paksha + " " + p.tithi);
+            }
+            panchangTile.setVisibility(View.VISIBLE);
         } catch (Exception e) {
-            panchangLabel.setVisibility(View.GONE);
+            panchangTile.setVisibility(View.GONE);
         }
     }
 

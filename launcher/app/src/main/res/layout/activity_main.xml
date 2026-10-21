@@ -93,46 +93,38 @@
 
                 </LinearLayout>
 
-                <LinearLayout
+                <!-- The date gets its own line now. Weather and the Hindu date moved to their own
+                     tiles in the top right corner, so nothing is crowded together any more. -->
+                <TextClock
+                    android:id="@+id/date"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
-                    android:orientation="horizontal"
-                    android:baselineAligned="true">
+                    android:format12Hour="EEEE, d MMMM"
+                    android:format24Hour="EEEE, d MMMM"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="18sp"
+                    android:fontFamily="@font/space_grotesk"
+                    android:fontVariationSettings="'wght' 500" />
 
-                    <TextClock
-                        android:id="@+id/date"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:format12Hour="EEEE, d MMMM"
-                        android:format24Hour="EEEE, d MMMM"
-                        android:textColor="#FFFFFFFF"
-                        android:textSize="18sp"
-                        android:fontFamily="@font/space_grotesk"
-                        android:fontVariationSettings="'wght' 500" />
-
-                    <TextView
-                        android:id="@+id/panchang"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="22dp"
-                        android:textColor="#CCFFFFFF"
-                        android:textSize="17sp"
-                        android:fontFamily="@font/space_grotesk"
-                        android:fontVariationSettings="'wght' 500"
-                        android:visibility="gone" />
-
-                    <TextView
-                        android:id="@+id/weather"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="22dp"
-                        android:textColor="#FFFFFFFF"
-                        android:textSize="18sp"
-                        android:fontFamily="@font/space_grotesk"
-                        android:fontVariationSettings="'wght' 600"
-                        android:visibility="gone" />
-                </LinearLayout>
+                <!-- The line of the day. Press OK to play the song set in config.xml. No custom
+                     font: Space Grotesk has no Devanagari, so this uses the TV's own Hindi font. -->
+                <TextView
+                    android:id="@+id/quote"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="18dp"
+                    android:paddingTop="7dp"
+                    android:paddingBottom="9dp"
+                    android:background="@drawable/quote_bg"
+                    android:textColor="#E9C46A"
+                    android:textSize="20sp"
+                    android:singleLine="true"
+                    android:nextFocusDown="@+id/grid"
+                    android:nextFocusUp="@+id/btnInputs"
+                    android:visibility="gone" />
             </LinearLayout>
 
             <LinearLayout
@@ -164,6 +156,91 @@
                     android:text="@string/settings"
                     android:drawableStart="@drawable/ic_settings"
                     android:nextFocusDown="@+id/grid" />
+            </LinearLayout>
+
+            <!-- Right corner: weather and air quality in one card, the Hindu date in another.
+                 These used to be squeezed onto the end of the date line, where they ran into the
+                 buttons above. Each is hidden until it has something real to say. -->
+            <LinearLayout
+                android:id="@+id/cornerTiles"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_below="@id/topButtons"
+                android:layout_marginTop="18dp"
+                android:layout_marginEnd="2dp"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:id="@+id/weatherTile"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minWidth="164dp"
+                    android:background="@drawable/info_tile"
+                    android:orientation="vertical"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="18dp"
+                    android:paddingTop="13dp"
+                    android:paddingBottom="15dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/weatherTemp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="30sp"
+                        android:fontFamily="@font/space_grotesk"
+                        android:fontVariationSettings="'wght' 500"
+                        android:letterSpacing="-0.02"
+                        android:includeFontPadding="false"
+                        android:singleLine="true" />
+
+                    <TextView
+                        android:id="@+id/weatherAir"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="5dp"
+                        android:textColor="#B3FFFFFF"
+                        android:textSize="14sp"
+                        android:fontFamily="@font/space_grotesk"
+                        android:fontVariationSettings="'wght' 500"
+                        android:letterSpacing="0.02"
+                        android:singleLine="true" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/panchangTile"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:minWidth="164dp"
+                    android:background="@drawable/info_tile"
+                    android:orientation="vertical"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="18dp"
+                    android:paddingTop="13dp"
+                    android:paddingBottom="15dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/panchangTithi"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="#FFFFFFFF"
+                        android:textSize="22sp"
+                        android:includeFontPadding="false"
+                        android:singleLine="true" />
+
+                    <TextView
+                        android:id="@+id/panchangMonth"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:textColor="#B3FFFFFF"
+                        android:textSize="14sp"
+                        android:singleLine="true" />
+                </LinearLayout>
             </LinearLayout>
         </RelativeLayout>
 

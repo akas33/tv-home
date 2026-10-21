@@ -96,6 +96,10 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
     /** Never shown as tiles (res/values/config.xml, hidden_apps). */
     private final Set<String> hidden;
     private final List<Entry> items = new ArrayList<>();
+    /** How a tile is drawn (res/values/config.xml, tile_style): banner, inset or icon. */
+    private final String tileStyle;
+    /** The gutter between the tile's card and the artwork, in pixels, for the inset style. */
+    private final int tileInset;
 
     AppAdapter(Context ctx, TileListener listener, int dockSize) {
         this.ctx = ctx;
@@ -103,6 +107,8 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         this.dockSize = dockSize;
         this.favourites = Arrays.asList(ctx.getResources().getStringArray(R.array.dock_apps));
         this.hidden = new HashSet<>(Arrays.asList(ctx.getResources().getStringArray(R.array.hidden_apps)));
+        this.tileStyle = ctx.getString(R.string.tile_style).trim().toLowerCase();
+        this.tileInset = Math.round(13 * ctx.getResources().getDisplayMetrics().density);
     }
 
     private SharedPreferences usage() {
@@ -212,8 +218,21 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         h.name.setAlpha(0f);
         h.card.setScaleX(1f);
         h.card.setScaleY(1f);
-        if (e.banner != null) {
+        // tile_style in config.xml decides how an app is drawn. "banner" fills the tile with the
+        // app's own artwork, which is what every app ships and why a row of them clashes: one is a
+        // white box, the next solid blue. "inset" keeps the artwork but floats it on the tile's own
+        // dark card, so the row shares a surface and a gutter. "icon" ignores the artwork entirely
+        // and shows the app's icon over its name, which is the most uniform of the three.
+        boolean useBanner = e.banner != null && !"icon".equals(tileStyle);
+        if (useBanner) {
             h.banner.setImageDrawable(e.banner);
+            if ("banner".equals(tileStyle)) {
+                h.banner.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                h.banner.setPadding(0, 0, 0, 0);
+            } else {
+                h.banner.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                h.banner.setPadding(tileInset, tileInset, tileInset, tileInset);
+            }
             h.banner.setVisibility(View.VISIBLE);
             h.icon.setVisibility(View.GONE);
             h.label.setVisibility(View.GONE);
