@@ -77,13 +77,15 @@ final class Sky {
     }
 
     /**
-     * Darkest at the top and bottom, where the bento row and the app names are, and lightest
-     * across the middle so the picture still shows. Without this a bright photo swallows the text.
+     * Darkest at the top and bottom, where the greeting and the app names sit on bare picture,
+     * and nearly clear across the middle so the photograph is actually visible. It used to be
+     * heavy the whole way down, which turned every wallpaper into grey fog. The panes carry their
+     * own background, so they do not need the scrim to do it for them.
      */
     private static GradientDrawable scrim() {
         GradientDrawable g = new GradientDrawable(
                 GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{0xD6000000, 0x66000000, 0x7A000000, 0xE0000000});
+                new int[]{0xA8000000, 0x1F000000, 0x33000000, 0xBF000000});
         g.setGradientType(GradientDrawable.LINEAR_GRADIENT);
         return g;
     }
