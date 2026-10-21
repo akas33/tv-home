@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  One pane of the bento row: black glass. No drop shadow any more - against a black screen the
-  shadow read as a second box around the first - just a sheet lifted slightly at its top edge and
-  a hairline to say where it ends.
+  One pane of the bento row. The colours come from res/values/colors.xml so the whole set can be
+  retuned in one file: tile_glass_top, tile_glass_bottom, tile_edge.
 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
     <gradient
         android:angle="270"
-        android:startColor="#2E1A1A20"
-        android:endColor="#99000000" />
-    <stroke android:width="1dp" android:color="#1FFFFFFF" />
+        android:startColor="@color/tile_glass_top"
+        android:endColor="@color/tile_glass_bottom" />
+    <stroke android:width="1dp" android:color="@color/tile_edge" />
     <corners android:radius="22dp" />
 </shape>

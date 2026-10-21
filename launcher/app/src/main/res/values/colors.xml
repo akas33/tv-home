@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Every colour the home screen uses, in one place. Change a value here and reinstall
+  (.\windows\tv.ps1 install) - no other file needs touching, and nothing else has to change with
+  it. Colours are #AARRGGBB (the first two digits are opacity: FF solid, 80 half, 00 invisible)
+  or plain #RRGGBB for solid.
+
+  If you want to try a few looks quickly, these are the three that matter most:
+    accent      the small bright bits - AM/PM, the weekday, the mantra
+    app_name    the name under an app tile
+    tile_glass  how dark the bento panes are. Nearer FF is more solid, nearer 40 is more see-
+                through, which matters once there is a picture behind them.
+-->
+<resources>
+
+    <!-- The small bright bits. Warm gold by default: it sits well on a photograph, which a
+         saturated colour does not. Some alternatives, if you want to paste one in:
+             #FF6FD3C7  teal        #FFE9C46A  gold (now)
+             #FF9DB4FF  soft blue   #FFFFFFFF  plain white
+             #FFFF2E63  hot pink    #FFF4A261  amber -->
+    <color name="accent">#FFE9C46A</color>
+
+    <!-- The name under an app tile. -->
+    <color name="app_name">#FFCBB89A</color>
+
+    <!-- The bento panes: weather, clock, calendar. -->
+    <color name="tile_glass_top">#3827314F</color>
+    <color name="tile_glass_bottom">#A6080B18</color>
+    <color name="tile_edge">#26FFFFFF</color>
+
+    <!-- Text inside the panes. -->
+    <color name="text_bright">#FFFFFFFF</color>
+    <color name="text_soft">#CCFFFFFF</color>
+    <color name="text_faint">#8CFFFFFF</color>
+
+    <!-- The greeting, and a festival day's greeting. -->
+    <color name="greeting">#FFFFFFFF</color>
+    <color name="greeting_festival">#FFE9C46A</color>
+</resources>

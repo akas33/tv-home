@@ -35,7 +35,7 @@ public class GlassView extends View {
         radius = 20f * density;
         rim.setStyle(Paint.Style.STROKE);
         rim.setStrokeWidth(1.5f * density);
-        rim.setColor(0x59FFFFFF);
+        rim.setColor(0x59FFFFFF);   // a plain hairline, not the accent: a coloured ring read as a box
         halo.setStyle(Paint.Style.STROKE);
     }
 

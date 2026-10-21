@@ -37,18 +37,22 @@ final class Sky {
 
     /** top, middle, bottom of the background gradient, for each band of the day. */
     private static final int[][] BANDS = {
-            {0xFF000000, 0xFF050507, 0xFF0A0A0E},   // 0  night
-            {0xFF030305, 0xFF08080C, 0xFF101014},   // 5  morning
-            {0xFF030304, 0xFF090909, 0xFF111113},   // 11 midday
-            {0xFF040306, 0xFF0A080E, 0xFF121018},   // 17 evening
-            {0xFF000000, 0xFF050507, 0xFF0A0A0E},   // 22 night again
+            {0xFF05070F, 0xFF0A1024, 0xFF131A33},   // 0  night
+            {0xFF0A1A2E, 0xFF10304A, 0xFF17434F},   // 5  morning
+            {0xFF07202F, 0xFF0D3845, 0xFF114A4E},   // 11 midday
+            {0xFF1A0F2E, 0xFF34173A, 0xFF4A2338},   // 17 evening
+            {0xFF05070F, 0xFF0A1024, 0xFF131A33},   // 22 night again
     };
     private static final int[] STARTS = {0, 5, 11, 17, 22};
 
-    /** The accent: the pink the tiles and the line of the day pick up. */
-    static final int ACCENT = 0xFFFF2E63;
-    /** The warm gold kept for festival days. */
-    static final int GOLD = 0xFFE9C46A;
+    /** The accent and the festival colour, both from res/values/colors.xml. */
+    static int accent(Context c) {
+        return c.getResources().getColor(R.color.accent);
+    }
+
+    static int festival(Context c) {
+        return c.getResources().getColor(R.color.greeting_festival);
+    }
 
     private static Bitmap cached;
     private static String cachedKey;

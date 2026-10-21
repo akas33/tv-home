@@ -297,9 +297,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * ambient tint, which still follows the focused app.
      */
     private void showHero(int position, float dockTopInRoot) {
-        // Nothing. The screen used to take on the colour of whatever app you were standing on -
-        // red for Netflix, blue for Prime - which meant the background never settled. It stays
-        // black; the highlight behind the tile is the only thing that says where you are.
+        int color = adapter.ambientColorAt(position);
+        if (!heroShown) {
+            setAmbient(color);
+            ambient.animate().alpha(1f).setDuration(600).start();
+            heroShown = true;
+        } else if (color != ambientColor) {
+            ambient.animate().alpha(0.35f).setDuration(200).withEndAction(() -> {
+                setAmbient(color);
+                ambient.animate().alpha(1f).setDuration(500).start();
+            }).start();
+        }
     }
 
     private void setAmbient(int color) {
@@ -410,7 +418,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         String text = Devotion.greeting(this, getString(res));
         boolean festival = !text.equals(getString(res));
         greeting.setText(text);
-        greeting.setTextColor(festival ? Sky.GOLD : 0xD9FFFFFF);
+        greeting.setTextColor(getResources().getColor(
+                festival ? R.color.greeting_festival : R.color.greeting));
     }
 
     /** The line of the day under the date, from daily_quotes in config.xml. */

@@ -60,7 +60,7 @@
         android:ellipsize="end"
         android:alpha="0"
         android:translationY="-6dp"
-        android:textColor="#F2FFFFFF"
+        android:textColor="@color/app_name"
         android:textSize="13sp"
         android:fontFamily="@font/space_grotesk"
         android:fontVariationSettings="'wght' 500"
